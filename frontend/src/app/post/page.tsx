@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import Navbar from "@/components/marketplace/Navbar";
-import { listingsApi } from "@/lib/api";
+import { listingsApi, type Listing } from "@/lib/api";
 
 type ListingType = "sell" | "resale" | "rent" | "free";
 
@@ -257,7 +257,7 @@ export default function PostListingPage() {
                 try {
                   setUploading(true);
                   const submitPrice = listingType === 'rent' ? formData.rentRate : formData.price;
-                  await listingsApi.create({ ...formData, price: submitPrice, type: listingType!, images });
+                  await listingsApi.create({ ...formData, condition: formData.condition as Listing["condition"], price: parseFloat(submitPrice) || 0, type: listingType!, images });
                   window.location.href = "/my-listings";
                 } catch (err) {
                   alert("Failed to create listing: " + (err as Error).message);
