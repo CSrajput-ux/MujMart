@@ -53,6 +53,7 @@ export default function ProfilePage() {
   const userId = params?.id as string;
 
   const [user, setUser] = useState<ProfileUser | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function ProfilePage() {
         createdAt: "2026-01-15T00:00:00.000Z",
         _count: { listings: 4 },
       });
+      setListings([]);
       setLoading(false);
     }, 400);
   }, [userId]);

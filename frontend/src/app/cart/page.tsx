@@ -49,7 +49,7 @@ export default function CartPage() {
                 {cartItems.map((item) => (
                   <div key={item.id} style={{ display: "flex", gap: 16, paddingBottom: 20, borderBottom: "1px solid #F3F4F6" }}>
                     <div style={{ width: 100, height: 100, borderRadius: 12, background: "#FFF0EA", overflow: "hidden", flexShrink: 0 }}>
-                      <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={item.images?.[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000"} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                       <div>

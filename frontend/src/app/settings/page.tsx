@@ -30,7 +30,7 @@ export default function SettingsPage() {
     
     try {
       const res = await authApi.updateProfile({ upiId, phone });
-      login(res.user, localStorage.getItem("token") || ""); 
+      login(res.user);
       setMessage("Settings saved successfully!");
       setTimeout(() => window.location.reload(), 1000);
     } catch (err: any) {

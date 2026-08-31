@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { Listing } from "./mockData";
+import type { Listing } from "@/lib/api";
 
 interface CartItem extends Listing {
   quantity: number;
