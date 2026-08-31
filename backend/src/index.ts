@@ -23,14 +23,18 @@ const app = express();
 const httpServer = createServer(app);
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URLS = [
+  'http://localhost:3000',
+  'https://muj-mart.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean) as string[];
 
 // ─────────────────────────────────────────────
 // Socket.io
 // ─────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: FRONTEND_URLS,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -47,7 +51,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: FRONTEND_URLS,
     credentials: true,
   })
 );
