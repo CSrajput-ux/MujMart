@@ -3,6 +3,7 @@ import { Syne, DM_Sans } from "next/font/google";
 import { DemoProvider } from "@/lib/DemoContext";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/AuthContext";
+import Script from "next/script";
 import "./globals.css";
 
 const syne = Syne({
@@ -51,6 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${syne.variable} ${dmSans.variable} antialiased`}>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
         <DemoProvider>
           <AuthProvider>
             <CartProvider>{children}</CartProvider>

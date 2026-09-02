@@ -163,14 +163,11 @@ export const transactionsApi = {
       body: JSON.stringify(data),
     }),
 
-  submitUtr: (id: string, utrNumber: string) =>
-    apiFetch<{ transaction: Transaction }>(`/api/transactions/${id}/submit-utr`, {
+  verifyRazorpay: (id: string, data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
+    apiFetch<{ transaction: Transaction }>(`/api/transactions/${id}/verify-razorpay`, {
       method: 'POST',
-      body: JSON.stringify({ utrNumber }),
+      body: JSON.stringify(data),
     }),
-
-  verifyPayment: (id: string) =>
-    apiFetch<{ transaction: Transaction }>(`/api/transactions/${id}/verify-payment`, { method: 'POST' }),
 
   confirmReceipt: (id: string) =>
     apiFetch<{ transaction: Transaction }>(`/api/transactions/${id}/confirm-receipt`, { method: 'POST' }),
@@ -299,6 +296,8 @@ export interface Transaction {
   sellerAmount?: number;
   status: 'pending_payment' | 'verifying_payment' | 'escrow' | 'ready_for_payout' | 'completed' | 'refunded';
   utrNumber?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   createdAt: string;
   listing?: Partial<Listing>;
   buyer?: Partial<User>;

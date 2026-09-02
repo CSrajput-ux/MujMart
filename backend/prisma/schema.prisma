@@ -89,6 +89,8 @@ model Transaction {
   platformMargin Float    // 5% of amount
   status         String   @default("pending_payment") // pending_payment | verifying_payment | escrow | ready_for_payout | completed | refunded
   utrNumber      String?  // Buyer's payment reference
+  razorpayOrderId   String?
+  razorpayPaymentId String?
   createdAt      DateTime @default(now())
 
   listingId      String

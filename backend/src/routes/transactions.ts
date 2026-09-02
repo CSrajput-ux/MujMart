@@ -1,9 +1,16 @@
 import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+});
 
 const PLATFORM_MARGIN_RATE = 0.05; // 5%
 
@@ -58,27 +65,38 @@ router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response)
       },
     });
 
+    const order = await razorpay.orders.create({
+      amount: Math.round(finalAmount * 100), // in paise
+      currency: "INR",
+      receipt: transaction.id,
+    });
+
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: { razorpayOrderId: order.id },
+    });
+
     // Mark listing as sold so others can't buy it simultaneously
     await prisma.listing.update({
       where: { id: listingId },
       data: { status: 'sold' },
     });
 
-    res.status(201).json({ transaction });
+    res.status(201).json({ transaction: updatedTransaction });
   } catch (error) {
     console.error('Checkout error:', error);
     res.status(500).json({ error: 'Failed to initiate checkout' });
   }
 });
 
-// POST /api/transactions/:id/submit-utr — Buyer submits UTR
-router.post('/:id/submit-utr', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+// POST /api/transactions/:id/verify-razorpay — Buyer submits Razorpay payment signature
+router.post('/:id/verify-razorpay', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { utrNumber } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    if (!utrNumber || utrNumber.length < 6) {
-      res.status(400).json({ error: 'Valid UTR number is required' });
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      res.status(400).json({ error: 'Missing payment details' });
       return;
     }
 
@@ -93,37 +111,27 @@ router.post('/:id/submit-utr', authMiddleware, async (req: AuthRequest, res: Res
       return;
     }
 
-    const updated = await prisma.transaction.update({
-      where: { id },
-      data: { utrNumber, status: 'verifying_payment' },
-    });
+    // Verify signature
+    const text = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const generated_signature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+      .update(text)
+      .digest('hex');
 
-    res.json({ transaction: updated });
-  } catch (error) {
-    console.error('Submit UTR error:', error);
-    res.status(500).json({ error: 'Failed to submit UTR' });
-  }
-});
-
-// POST /api/transactions/:id/verify-payment — Admin verifies UTR
-router.post('/:id/verify-payment', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const id = req.params.id as string;
-    const transaction = await prisma.transaction.findUnique({ where: { id } });
-    
-    if (!transaction || transaction.status !== 'verifying_payment') {
-      res.status(400).json({ error: 'Invalid transaction state' });
-      return;
+    if (generated_signature === razorpay_signature) {
+      const updated = await prisma.transaction.update({
+        where: { id },
+        data: { 
+          status: 'escrow',
+          razorpayPaymentId: razorpay_payment_id 
+        },
+      });
+      res.json({ transaction: updated });
+    } else {
+      res.status(400).json({ error: 'Invalid payment signature' });
     }
-
-    const updated = await prisma.transaction.update({
-      where: { id },
-      data: { status: 'escrow' },
-    });
-
-    res.json({ transaction: updated });
   } catch (error) {
-    console.error('Verify payment error:', error);
+    console.error('Verify razorpay error:', error);
     res.status(500).json({ error: 'Failed to verify payment' });
   }
 });

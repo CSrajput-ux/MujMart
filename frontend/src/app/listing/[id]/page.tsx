@@ -6,7 +6,6 @@ import Navbar from "@/components/marketplace/Navbar";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { listingsApi, threadsApi, transactionsApi, type Listing } from "@/lib/api";
-import { QRCodeSVG } from "qrcode.react";
 
 const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
   New: { bg: "#DCFCE7", text: "#15803D" },
@@ -36,12 +35,9 @@ export default function ListingDetailPage() {
 
   // Checkout states
   const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<"qr" | "success">("qr");
-  const [utrNumber, setUtrNumber] = useState("");
+  const [checkoutStep, setCheckoutStep] = useState<"processing" | "success">("processing");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
-
-  const ADMIN_UPI = "mujmart.admin@oksbi"; // Change this to real admin UPI
 
   useEffect(() => {
     async function loadData() {
@@ -66,34 +62,56 @@ export default function ListingDetailPage() {
     requireAuth(async () => {
       try {
         setCheckoutLoading(true);
-        setShowCheckout(true);
         // Initiate transaction
         const res = await transactionsApi.checkout({ listingId: listing.id });
         setTransactionId(res.transaction.id);
-        setCheckoutStep("qr");
+        
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: listing.price * 100, // Amount in paise
+          currency: "INR",
+          name: "MUJMart",
+          description: "Secure Escrow Payment for " + listing.title,
+          order_id: res.transaction.razorpayOrderId,
+          handler: async function (response: any) {
+             try {
+                setShowCheckout(true);
+                setCheckoutStep("processing");
+                await transactionsApi.verifyRazorpay(res.transaction.id, {
+                   razorpay_order_id: response.razorpay_order_id,
+                   razorpay_payment_id: response.razorpay_payment_id,
+                   razorpay_signature: response.razorpay_signature,
+                });
+                setCheckoutStep("success");
+             } catch(e: any) {
+                alert("Payment verification failed: " + (e.message || ""));
+                setShowCheckout(false);
+             }
+          },
+          modal: {
+            ondismiss: function() {
+              setCheckoutLoading(false);
+            }
+          },
+          theme: {
+            color: "#E8521A"
+          }
+        };
+
+        const rzp1 = new (window as any).Razorpay(options);
+        rzp1.on('payment.failed', function (response: any) {
+           alert(response.error.description);
+           setShowCheckout(false);
+           setCheckoutLoading(false);
+        });
+        rzp1.open();
+
       } catch (e: any) {
         alert(e.message || "Failed to initiate checkout");
         setShowCheckout(false);
-      } finally {
         setCheckoutLoading(false);
       }
     });
-  };
-
-  const handleSubmitUtr = async () => {
-    if (!transactionId || utrNumber.length < 6) {
-      alert("Please enter a valid 12-digit UTR number");
-      return;
-    }
-    try {
-      setCheckoutLoading(true);
-      await transactionsApi.submitUtr(transactionId, utrNumber);
-      setCheckoutStep("success");
-    } catch (e: any) {
-      alert(e.message || "Failed to submit UTR");
-    } finally {
-      setCheckoutLoading(false);
-    }
   };
 
   const handleNegotiate = async () => {
@@ -237,57 +255,20 @@ export default function ListingDetailPage() {
           </section>
         )}
 
-        {/* Checkout Escrow Modal */}
+        {/* Checkout Success Modal */}
         {showCheckout && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setShowCheckout(false)} />
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} />
             
             <div style={{ position: "relative", width: "100%", maxWidth: 420, background: "#fff", borderRadius: 24, boxShadow: "0 24px 48px rgba(0,0,0,0.15)", padding: 32 }}>
-              <button onClick={() => setShowCheckout(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#6B7280" }}>×</button>
               
-              {checkoutLoading && !transactionId ? (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>Initiating secure checkout...</div>
-              ) : checkoutStep === "qr" ? (
-                <div style={{ textAlign: "center" }}>
-                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>Secure Escrow Payment</h3>
-                  <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 24px 0" }}>Scan this QR code to pay the platform admin. Funds will be held securely until you receive the item.</p>
-                  
-                  <div style={{ background: "#FDF8F5", padding: 20, borderRadius: 16, display: "inline-block", marginBottom: 24, border: "1px solid #F0DDD4" }}>
-                    <QRCodeSVG 
-                      value={`upi://pay?pa=${ADMIN_UPI}&pn=MUJMart%20Escrow&am=${listing.price}&cu=INR`} 
-                      size={200} 
-                      level="H"
-                    />
-                  </div>
-                  
-                  <h4 style={{ fontSize: 20, fontWeight: 800, color: "#E8521A", margin: "0 0 24px 0", fontFamily: "'Syne', sans-serif" }}>
-                    ₹{listing.price.toLocaleString("en-IN")}
-                  </h4>
-                  
-                  <div style={{ textAlign: "left", marginBottom: 20 }}>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#4B5563", marginBottom: 8, textTransform: "uppercase" }}>Enter 12-digit UTR / Reference No.</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 325419472910" 
-                      value={utrNumber}
-                      onChange={(e) => setUtrNumber(e.target.value)}
-                      style={{ width: "100%", padding: 14, borderRadius: 10, border: "1px solid #E5E7EB", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
-                    />
-                  </div>
-                  
-                  <button 
-                    onClick={handleSubmitUtr}
-                    disabled={checkoutLoading || utrNumber.length < 6}
-                    style={{ width: "100%", padding: 14, background: checkoutLoading || utrNumber.length < 6 ? "#F3F4F6" : "#22C55E", color: checkoutLoading || utrNumber.length < 6 ? "#9CA3AF" : "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: checkoutLoading || utrNumber.length < 6 ? "not-allowed" : "pointer" }}
-                  >
-                    {checkoutLoading ? "Submitting..." : "I have paid"}
-                  </button>
-                </div>
+              {checkoutStep === "processing" ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>Verifying your secure payment...</div>
               ) : (
                 <div style={{ textAlign: "center", padding: "20px 0" }}>
                   <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#DCFCE7", color: "#15803D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>✓</div>
-                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>Payment Verifying</h3>
-                  <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px 0", lineHeight: 1.5 }}>Your payment reference has been submitted. The admin will verify it shortly and hold the funds in escrow.</p>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>Payment Successful</h3>
+                  <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px 0", lineHeight: 1.5 }}>Your payment has been verified. The funds are now securely held in escrow until you receive your item.</p>
                   <button onClick={() => router.push("/my-listings")} style={{ padding: "10px 24px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer" }}>Go to My Deals</button>
                 </div>
               )}
