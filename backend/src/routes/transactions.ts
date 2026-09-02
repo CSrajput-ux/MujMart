@@ -76,11 +76,7 @@ router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response)
       data: { razorpayOrderId: order.id },
     });
 
-    // Mark listing as sold so others can't buy it simultaneously
-    await prisma.listing.update({
-      where: { id: listingId },
-      data: { status: 'sold' },
-    });
+    // Listing status will be updated to 'sold' upon successful payment verification.
 
     res.status(201).json({ transaction: updatedTransaction });
   } catch (error) {
@@ -126,6 +122,13 @@ router.post('/:id/verify-razorpay', authMiddleware, async (req: AuthRequest, res
           razorpayPaymentId: razorpay_payment_id 
         },
       });
+
+      // Mark listing as sold now that payment is secured
+      await prisma.listing.update({
+        where: { id: transaction.listingId },
+        data: { status: 'sold' },
+      });
+
       res.json({ transaction: updated });
     } else {
       res.status(400).json({ error: 'Invalid payment signature' });

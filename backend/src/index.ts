@@ -26,6 +26,8 @@ const PORT = parseInt(process.env.PORT || '4000', 10);
 const FRONTEND_URLS = [
   'http://localhost:3000',
   'https://muj-mart.vercel.app',
+  'https://www.mujmart.in',
+  'https://mujmart.in',
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
 
