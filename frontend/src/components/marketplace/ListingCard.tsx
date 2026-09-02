@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
+import { Clock } from "lucide-react";
 import type { Listing } from "@/lib/api";
 
 interface ListingCardProps {
@@ -91,7 +92,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
               {listing.category}
             </span>
             <span style={{ fontSize: 11, color: "#9CA3AF", display: "flex", alignItems: "center", gap: 4 }}>
-              🕒 3d ago
+              <Clock size={12} /> 3d ago
             </span>
           </div>
 

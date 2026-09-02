@@ -2,6 +2,7 @@
 
 import React from "react";
 import MetricCard from "@/components/admin/MetricCard";
+import { Coins, Package, Handshake, AlertTriangle } from "lucide-react";
 import HealthBar from "@/components/admin/HealthBar";
 import StatusPill from "@/components/ui/StatusPill";
 
@@ -64,10 +65,10 @@ export default function AdminDashboard() {
           marginBottom: 28,
         }}
       >
-        <MetricCard label="Total Revenue" value="₹18,430" trend="+23%" trendUp icon="💰" color="green" />
-        <MetricCard label="Active Listings" value="347" trend="+12" trendUp icon="📦" color="blue" />
-        <MetricCard label="Deals Today" value="18" trend="+5" trendUp icon="🤝" color="orange" />
-        <MetricCard label="Open Disputes" value="7" trend="-2" trendUp={false} icon="⚠️" color="red" />
+        <MetricCard label="Total Revenue" value="₹18,430" trend="+23%" trendUp icon={<Coins size={18} />} color="green" />
+        <MetricCard label="Active Listings" value="347" trend="+12" trendUp icon={<Package size={18} />} color="blue" />
+        <MetricCard label="Deals Today" value="18" trend="+5" trendUp icon={<Handshake size={18} />} color="orange" />
+        <MetricCard label="Open Disputes" value="7" trend="-2" trendUp={false} icon={<AlertTriangle size={18} />} color="red" />
       </div>
 
       {/* Two column layout */}

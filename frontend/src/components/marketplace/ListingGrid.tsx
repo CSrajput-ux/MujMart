@@ -38,7 +38,7 @@ export default function ListingGrid({ listings }: ListingGridProps) {
             gap: 10px !important;
           }
         }
-        @media (max-width: 380px) {
+        @media (max-width: 480px) {
           .listing-grid {
             grid-template-columns: 1fr !important;
           }

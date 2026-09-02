@@ -5,6 +5,7 @@ import Navbar from "@/components/marketplace/Navbar";
 import { useDemo } from "@/lib/DemoContext";
 import { useAuth } from "@/lib/AuthContext";
 import { listingsApi, transactionsApi, Listing, Transaction } from "@/lib/api";
+import { Clock, AlertTriangle, Package, Lock } from "lucide-react";
 
 type Tab = "active" | "purchases" | "sold";
 
@@ -56,8 +57,8 @@ export default function MyListingsPage() {
       <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "100px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ width: 80, height: 80, margin: "0 auto 20px", background: "#FFF0EA", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
-            🔒
+          <div style={{ width: 80, height: 80, margin: "0 auto 20px", background: "#FFF0EA", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Lock size={36} color="#E8521A" />
           </div>
           <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 24, color: "#1A0A00", margin: "0 0 12px 0" }}>
             Sign in to view your listings
@@ -162,7 +163,7 @@ export default function MyListingsPage() {
             {loading ? (
               <div style={{ textAlign: "center", padding: "80px 0", color: "#6B7280" }}>Loading your listings...</div>
             ) : myListings.length === 0 ? (
-              <EmptyState icon="📦" title="No active listings" description="Post your first listing to start selling on campus." ctaText="Post Listing" ctaHref="/post" />
+              <EmptyState icon={<Package size={32} color="#E8521A" />} title="No active listings" description="Post your first listing to start selling on campus." ctaText="Post Listing" ctaHref="/post" />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }} className="my-listing-grid">
                 {myListings.map((listing) => (
@@ -293,8 +294,8 @@ function MyListingCard({ listing }: { listing: Listing }) {
           {listing.price === 0 ? "FREE" : `₹${listing.price.toLocaleString("en-IN")}`}
         </p>
 
-        <p style={{ fontSize: 11, color: urgency ? "#EF4444" : "#9CA3AF", fontFamily: "'DM Sans', sans-serif", margin: "0 0 12px 0" }}>
-          {urgency ? `⚠️ Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}` : `⏰ ${Math.max(0, daysLeft)} days left`}
+        <p style={{ fontSize: 11, color: urgency ? "#EF4444" : "#9CA3AF", fontFamily: "'DM Sans', sans-serif", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: 4 }}>
+          {urgency ? <><AlertTriangle size={12} /> Expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}</> : <><Clock size={12} /> {Math.max(0, daysLeft)} days left</>}
         </p>
 
         <div style={{ display: "flex", gap: 8 }}>
@@ -315,10 +316,10 @@ function MyListingCard({ listing }: { listing: Listing }) {
   );
 }
 
-function EmptyState({ icon, title, description, ctaText, ctaHref }: { icon: string; title: string; description: string; ctaText: string; ctaHref: string }) {
+function EmptyState({ icon, title, description, ctaText, ctaHref }: { icon: React.ReactNode; title: string; description: string; ctaText: string; ctaHref: string }) {
   return (
     <div style={{ textAlign: "center", padding: "80px 0" }}>
-      <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#FFF0EA", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 32 }}>
+      <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#FFF0EA", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
         {icon}
       </div>
       <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18, color: "#1A0A00", marginBottom: 8 }}>{title}</h3>

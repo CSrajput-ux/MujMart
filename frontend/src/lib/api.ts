@@ -1,19 +1,21 @@
 // Typed API client for MUJMart backend
 // All API calls go through here for centralized auth header handling
 
+import { getSession } from "next-auth/react";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('mujmart_token');
+async function getToken(): Promise<string | null> {
+  const session = await getSession();
+  return (session as any)?.backendToken || null;
 }
 
-function getHeaders(contentType: string | null = 'application/json'): Record<string, string> {
+async function getHeaders(contentType: string | null = 'application/json'): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   if (contentType) {
     headers['Content-Type'] = contentType;
   }
-  const token = getToken();
+  const token = await getToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -22,10 +24,12 @@ function getHeaders(contentType: string | null = 'application/json'): Record<str
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+  const headers = await getHeaders(isFormData ? null : 'application/json');
+  
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
-      ...getHeaders(isFormData ? null : 'application/json'),
+      ...headers,
       ...options?.headers,
     },
   });
@@ -342,13 +346,12 @@ export interface MarginTotals {
 
 // Helper: save token
 export function saveAuthToken(token: string): void {
-  localStorage.setItem('mujmart_token', token);
+  // Handled by NextAuth
 }
 
 // Helper: clear token
 export function clearAuthToken(): void {
-  localStorage.removeItem('mujmart_token');
-  localStorage.removeItem('mujmart_user');
+  // Handled by NextAuth signOut
 }
 
 // Helper: get socket URL

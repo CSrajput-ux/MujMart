@@ -3,16 +3,17 @@
 import React, { useState, useRef } from "react";
 import Navbar from "@/components/marketplace/Navbar";
 import { listingsApi, type Listing } from "@/lib/api";
+import { Tag, RefreshCw, Package, Gift } from "lucide-react";
 
 type ListingType = "sell" | "resale" | "rent" | "free";
 
 const steps = ["Type", "Photos", "Details", "Pricing", "Delivery"];
 
-const typeConfig: Record<ListingType, { label: string; icon: string; bg: string; border: string; text: string }> = {
-  sell: { label: "Sell", icon: "🏷️", bg: "#FFF0EA", border: "#E8521A", text: "#E8521A" },
-  resale: { label: "Resale", icon: "🔄", bg: "#F5F0FF", border: "#8B5CF6", text: "#8B5CF6" },
-  rent: { label: "Rent", icon: "📦", bg: "#FFFBEA", border: "#F59E0B", text: "#F59E0B" },
-  free: { label: "Free", icon: "🎁", bg: "#EAFFF2", border: "#22C55E", text: "#22C55E" },
+const typeConfig: Record<ListingType, { label: string; icon: React.ReactNode; bg: string; border: string; text: string }> = {
+  sell: { label: "Sell", icon: <Tag size={28} />, bg: "#FFF0EA", border: "#E8521A", text: "#E8521A" },
+  resale: { label: "Resale", icon: <RefreshCw size={28} />, bg: "#F5F0FF", border: "#8B5CF6", text: "#8B5CF6" },
+  rent: { label: "Rent", icon: <Package size={28} />, bg: "#FFFBEA", border: "#F59E0B", text: "#F59E0B" },
+  free: { label: "Free", icon: <Gift size={28} />, bg: "#EAFFF2", border: "#22C55E", text: "#22C55E" },
 };
 
 export default function PostListingPage() {
@@ -36,15 +37,19 @@ export default function PostListingPage() {
       const newImages = [...images];
       for (const file of Array.from(e.target.files)) {
         if (newImages.length >= 8) break;
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`Image "${file.name}" exceeds the 5MB size limit.`);
+          continue;
+        }
         const res = await listingsApi.uploadImage(file);
         const isAbsolute = res.url.startsWith('http');
         const fullUrl = isAbsolute ? res.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${res.url}`;
         newImages.push(fullUrl);
       }
       setImages(newImages);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload failed:", err);
-      alert("Failed to upload image. Max size is 5MB.");
+      alert(err.message || "Failed to connect to the server. Please ensure the backend is running.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -100,7 +105,7 @@ export default function PostListingPage() {
                       padding: 20, borderRadius: 12, border: `2px solid ${isSelected ? c.border : "#F0DDD4"}`,
                       background: isSelected ? c.bg : "#fff", textAlign: "left", cursor: "pointer", transition: "all 0.2s",
                     }}>
-                      <span style={{ fontSize: 24, display: "block", marginBottom: 8 }}>{c.icon}</span>
+                      <span style={{ display: "flex", color: isSelected ? c.text : "#9CA3AF", marginBottom: 8 }}>{c.icon}</span>
                       <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, color: isSelected ? c.text : "#1A0A00", display: "block" }}>{c.label}</span>
                       <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
                         {type === "sell" && "Sell your items"}
@@ -193,7 +198,7 @@ export default function PostListingPage() {
               <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", margin: 0 }}>Pricing</h2>
               {listingType === "free" ? (
                 <div style={{ padding: 24, background: "rgba(34,197,94,0.05)", borderRadius: 12, border: "1px solid rgba(34,197,94,0.2)", textAlign: "center" }}>
-                  <span style={{ fontSize: 28 }}>🎁</span>
+                  <span style={{ display: "flex", justifyContent: "center", color: "#22C55E" }}><Gift size={28} /></span>
                   <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, color: "#22C55E", marginTop: 8 }}>This listing is free!</p>
                   <p style={{ fontSize: 12, color: "#6B7280", marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>No price needed.</p>
                 </div>

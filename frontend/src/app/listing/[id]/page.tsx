@@ -242,7 +242,7 @@ export default function ListingDetailPage() {
           <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setShowCheckout(false)} />
             
-            <div style={{ position: "relative", width: "100%", maxWidth: 420, background: "#fff", borderRadius: 24, boxShadow: "0 24px 48px rgba(0,0,0,0.15)", padding: 32 }}>
+            <div className="checkout-modal" style={{ position: "relative", width: "100%", maxWidth: 420, background: "#fff", borderRadius: 24, boxShadow: "0 24px 48px rgba(0,0,0,0.15)", padding: 32 }}>
               <button onClick={() => setShowCheckout(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#6B7280" }}>×</button>
               
               {checkoutLoading && !transactionId ? (
@@ -304,6 +304,10 @@ export default function ListingDetailPage() {
         @media (max-width: 600px) {
           .listing-detail-container { padding: 16px 16px 60px !important; }
           .related-grid { grid-template-columns: 1fr 1fr !important; }
+          .checkout-modal { padding: 24px 20px !important; }
+        }
+        @media (max-width: 480px) {
+          .related-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </main>

@@ -3,10 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDemo } from "@/lib/DemoContext";
-import { authApi, saveAuthToken } from "@/lib/api";
-import { auth } from "@/lib/firebase";
-import { useAuth } from "@/lib/AuthContext";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signIn } from "next-auth/react";
 
 interface LoginModalProps {
   onClose: () => void;
@@ -20,7 +17,6 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { enterDemoMode } = useDemo();
-  const { login } = useAuth();
   const router = useRouter();
 
   const handleDemoLogin = (role: "customer" | "admin") => {
@@ -36,38 +32,10 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     setLoading(true);
     
     try {
-      const provider = new GoogleAuthProvider();
-      // Optional: Prompt user to select account to handle cases where they have multiple Google accounts
-      provider.setCustomParameters({ prompt: "select_account" });
-      
-      const result = await signInWithPopup(auth, provider);
-      
-      // Send user details to our backend for JWT issuance
-      const data = await authApi.googleLogin({ 
-        email: result.user.email || "", 
-        name: result.user.displayName || "Student" 
-      });
-      
-      saveAuthToken(data.token);
-      localStorage.setItem("mujmart_user", JSON.stringify(data.user));
-      login(data.user);
-      
-      onClose();
-      
-      if (data.user.role === "admin") {
-        router.push("/admin");
-      }
+      await signIn("google", { callbackUrl: "/" });
     } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
-        // User closed popup, don't show error
-        setLoading(false);
-        return;
-      }
-      
-      const e = err as Error;
-      console.error("Google login error:", e);
-      setError(e.message || "Failed to sign in with Google.");
-    } finally {
+      console.error("Google login error:", err);
+      setError("Failed to sign in with Google.");
       setLoading(false);
     }
   };
@@ -78,26 +46,22 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const data = await authApi.login({ email, password });
-        saveAuthToken(data.token);
-        localStorage.setItem("mujmart_user", JSON.stringify(data.user));
-        login(data.user);
-        onClose();
-        if (data.user.role === "admin") {
-          router.push("/admin");
-        }
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+        name: isLogin ? undefined : name,
+        isRegister: isLogin ? "false" : "true",
+      });
+
+      if (res?.error) {
+        setError(res.error);
       } else {
-        // Registration
-        const data = await authApi.register({ name, email, password });
-        saveAuthToken(data.token);
-        localStorage.setItem("mujmart_user", JSON.stringify(data.user));
-        login(data.user);
         onClose();
+        router.refresh();
       }
     } catch (err) {
-      const e = err as Error;
-      setError(e.message || "Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

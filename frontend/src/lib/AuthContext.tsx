@@ -1,15 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { SessionProvider, useSession, signOut } from "next-auth/react";
 import LoginModal from "@/components/auth/LoginModal";
 import { useDemo } from "@/lib/DemoContext";
-
-import { User, clearAuthToken } from "@/lib/api";
+import { User } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
   logout: () => void;
   isAuthModalOpen: boolean;
   showAuthModal: () => void;
@@ -19,23 +18,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const pendingActionRef = useRef<(() => void) | null>(null);
   const { isDemo, demoUser } = useDemo();
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem("mujmart_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse user from local storage", e);
-      }
-    }
-  }, []);
+  const user = (session?.user as User) || null;
+  const isAuthenticated = !!user;
 
   // Execute pending action when user becomes authenticated
   useEffect(() => {
@@ -45,14 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isDemo, demoUser]);
 
-  const login = (newUser: User) => {
-    setUser(newUser);
-  };
-
   const logout = () => {
-    setUser(null);
-    clearAuthToken();
-    window.location.reload();
+    signOut({ redirect: true, callbackUrl: "/" });
   };
 
   const showAuthModal = () => setIsAuthModalOpen(true);
@@ -61,21 +45,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pendingActionRef.current = null;
   };
 
-  // Helper that checks if user is logged in before executing an action
   const requireAuth = (callback: () => void) => {
     if (user || (isDemo && demoUser)) {
-      callback(); // User is logged in, proceed
+      callback();
     } else {
       pendingActionRef.current = callback;
-      showAuthModal(); // User is not logged in, show modal
+      showAuthModal();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, isAuthModalOpen, showAuthModal, hideAuthModal, requireAuth }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, logout, isAuthModalOpen, showAuthModal, hideAuthModal, requireAuth }}>
       {children}
       {isAuthModalOpen && <LoginModal onClose={hideAuthModal} />}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </SessionProvider>
   );
 }
 

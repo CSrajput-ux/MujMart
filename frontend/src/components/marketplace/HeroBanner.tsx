@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { heroSlides } from "@/lib/mockData";
+import { Flame } from "lucide-react";
 
 export default function HeroBanner() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -102,7 +103,7 @@ export default function HeroBanner() {
                 border: "1px solid rgba(232, 82, 26, 0.2)",
               }}
             >
-              🔥 TRENDING NOW
+              <Flame size={14} /> TRENDING NOW
             </span>
           </div>
 
@@ -136,7 +137,7 @@ export default function HeroBanner() {
           </div>
 
           {/* Tags */}
-          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
             {["Buy", "Sell", "Rent", "Thrift", "Brands"].map((tag, i) => (
               <span
                 key={tag}
@@ -157,7 +158,7 @@ export default function HeroBanner() {
           </div>
 
           {/* Buttons */}
-          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+          <div className="hero-buttons" style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <a
               href="#listings"
               style={{
@@ -242,6 +243,8 @@ export default function HeroBanner() {
         @media (max-width: 768px) {
           .hero-container { padding: 32px 20px !important; border-radius: 0 !important; }
           .hero-image-overlay { display: none; }
+          .hero-buttons { flex-direction: column !important; width: 100%; gap: 12px !important; }
+          .hero-buttons > a { width: 100% !important; justify-content: center !important; }
         }
       `}</style>
     </section>

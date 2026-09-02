@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { Tag, RefreshCw, Package, Gift } from "lucide-react";
+
 interface ListingTypeCardProps {
   type: "sell" | "resale" | "rent" | "free";
   count: number;
@@ -10,28 +12,28 @@ interface ListingTypeCardProps {
 const typeConfig = {
   sell: {
     label: "Sell",
-    icon: "🏷️",
+    icon: <Tag size={28} />,
     textColor: "#E8521A",
     bgColor: "#FFF0EA",
     description: "Post items for sale",
   },
   resale: {
     label: "Resale",
-    icon: "🔄",
+    icon: <RefreshCw size={28} />,
     textColor: "#8B5CF6",
     bgColor: "#F5F0FF",
     description: "Second-hand deals",
   },
   rent: {
     label: "Rent",
-    icon: "📦",
+    icon: <Package size={28} />,
     textColor: "#F59E0B",
     bgColor: "#FFFBEA",
     description: "Temporary use items",
   },
   free: {
     label: "Free",
-    icon: "🎁",
+    icon: <Gift size={28} />,
     textColor: "#22C55E",
     bgColor: "#EAFFF2",
     description: "Free giveaways",
@@ -62,7 +64,7 @@ export default function ListingTypeCard({ type, count }: ListingTypeCardProps) {
         e.currentTarget.style.boxShadow = "none";
       }}
     >
-      <span style={{ fontSize: 28, lineHeight: 1 }}>{config.icon}</span>
+      <span style={{ display: "flex", color: config.textColor }}>{config.icon}</span>
       <h3
         style={{
           fontFamily: "'Syne', sans-serif",

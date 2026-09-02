@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/marketplace/Navbar";
 import { listingsApi, Listing } from "@/lib/api";
+import { Leaf, Star, Flame, Trophy, Handshake, Package, Calendar } from "lucide-react";
 
 interface ProfileUser {
   id: string;
@@ -16,10 +17,10 @@ interface ProfileUser {
 }
 
 const TRUST_BADGES = [
-  { min: 1, icon: "🌱", label: "New Member" },
-  { min: 5, icon: "⭐", label: "Trusted Seller" },
-  { min: 15, icon: "🔥", label: "Power Seller" },
-  { min: 30, icon: "🏆", label: "Campus Legend" },
+  { min: 1, icon: <Leaf size={16} />, label: "New Member" },
+  { min: 5, icon: <Star size={16} />, label: "Trusted Seller" },
+  { min: 15, icon: <Flame size={16} />, label: "Power Seller" },
+  { min: 30, icon: <Trophy size={16} />, label: "Campus Legend" },
 ];
 
 function getBadge(dealCount: number) {
@@ -199,12 +200,12 @@ export default function ProfilePage() {
             {/* Stats row */}
             <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
               {[
-                { label: "Deals Completed", value: user.dealCount, icon: "🤝" },
-                { label: "Active Listings", value: user._count?.listings || 0, icon: "📦" },
-                { label: "Member Since", value: memberSince, icon: "📅" },
+                { label: "Deals Completed", value: user.dealCount, icon: <Handshake size={18} /> },
+                { label: "Active Listings", value: user._count?.listings || 0, icon: <Package size={18} /> },
+                { label: "Member Since", value: memberSince, icon: <Calendar size={18} /> },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
+                  <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                     {stat.icon} {stat.value}
                   </p>
                   <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#9CA3AF", margin: "2px 0 0 0" }}>

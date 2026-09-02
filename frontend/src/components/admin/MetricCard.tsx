@@ -7,7 +7,7 @@ interface MetricCardProps {
   value: string | number;
   trend?: string;
   trendUp?: boolean;
-  icon?: string;
+  icon?: React.ReactNode;
   color?: "green" | "red" | "orange" | "blue" | "purple";
 }
 
@@ -73,7 +73,7 @@ export default function MetricCard({
             {label}
           </span>
         </div>
-        {icon && <span style={{ fontSize: 18 }}>{icon}</span>}
+        {icon && <span style={{ color: dotColorMap[color], display: "flex", opacity: 0.8 }}>{icon}</span>}
       </div>
       <p
         style={{

@@ -48,6 +48,7 @@ export default function HomePage() {
 
       {/* Search Section */}
       <section
+        className="section-padding search-section"
         style={{
           maxWidth: 1280,
           margin: "0 auto",
@@ -62,6 +63,7 @@ export default function HomePage() {
 
       {/* Listing Type Cards */}
       <section
+        className="section-padding"
         style={{
           maxWidth: 1280,
           margin: "0 auto",
@@ -109,6 +111,7 @@ export default function HomePage() {
       {/* Category Filter + Listings Grid */}
       <section
         id="listings"
+        className="section-padding listings-section"
         style={{
           maxWidth: 1280,
           margin: "0 auto",
@@ -201,6 +204,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="footer-inner"
           style={{
             maxWidth: 1280,
             margin: "0 auto",
@@ -323,6 +327,7 @@ export default function HomePage() {
           </div>
 
           <div
+            className="footer-bottom"
             style={{
               borderTop: "1px solid #F0DDD4",
               marginTop: 32,
@@ -352,7 +357,30 @@ export default function HomePage() {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
           .footer-grid {
-            grid-template-columns: 1fr 1fr !important;
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .section-padding {
+            padding: 0 20px !important;
+          }
+          .search-section {
+            margin-top: -16px !important;
+          }
+          .listings-section {
+            padding-bottom: 40px !important;
+          }
+          .footer-inner {
+            padding: 32px 20px !important;
+          }
+          .footer-bottom {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .type-cards-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

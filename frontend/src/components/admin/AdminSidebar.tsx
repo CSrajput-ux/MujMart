@@ -5,15 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDemo } from "@/lib/DemoContext";
 
+import { LayoutDashboard, ShieldCheck, Package, Users, AlertTriangle, Home, Coins, Settings } from "lucide-react";
+
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊", badge: null },
-  { href: "/admin/escrow", label: "Escrow Payments", icon: "🛡️", badge: "New" },
-  { href: "/admin/listings", label: "Listings", icon: "📦", badge: "347" },
-  { href: "/admin/users", label: "Users", icon: "👥", badge: null },
-  { href: "/admin/disputes", label: "Disputes", icon: "⚠️", badge: "4" },
-  { href: "/admin/rent", label: "Rent Approvals", icon: "🏠", badge: "7" },
-  { href: "/admin/margins", label: "Margins", icon: "💰", badge: null },
-  { href: "/admin/settings", label: "Settings", icon: "⚙️", badge: null },
+  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard size={18} />, badge: null },
+  { href: "/admin/escrow", label: "Escrow Payments", icon: <ShieldCheck size={18} />, badge: "New" },
+  { href: "/admin/listings", label: "Listings", icon: <Package size={18} />, badge: "347" },
+  { href: "/admin/users", label: "Users", icon: <Users size={18} />, badge: null },
+  { href: "/admin/disputes", label: "Disputes", icon: <AlertTriangle size={18} />, badge: "4" },
+  { href: "/admin/rent", label: "Rent Approvals", icon: <Home size={18} />, badge: "7" },
+  { href: "/admin/margins", label: "Margins", icon: <Coins size={18} />, badge: null },
+  { href: "/admin/settings", label: "Settings", icon: <Settings size={18} />, badge: null },
 ];
 
 export default function AdminSidebar() {
@@ -172,7 +174,7 @@ export default function AdminSidebar() {
                 }
               }}
             >
-              <span style={{ fontSize: 16, width: 20, textAlign: "center", flexShrink: 0 }}>
+              <span style={{ width: 20, textAlign: "center", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {item.icon}
               </span>
               <span style={{ flex: 1 }}>{item.label}</span>

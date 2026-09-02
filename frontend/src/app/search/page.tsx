@@ -65,7 +65,7 @@ function SearchContent() {
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="filter-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -161,8 +161,9 @@ function SearchContent() {
 
       <style>{`
         @media (max-width: 768px) {
-          .search-container { padding-top: 20px !important; }
+          .search-container { padding-top: 20px !important; padding-bottom: 32px !important; }
           .search-header { flex-direction: column !important; align-items: stretch !important; }
+          .filter-actions { width: 100% !important; justify-content: space-between !important; }
           .filter-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>

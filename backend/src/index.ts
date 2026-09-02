@@ -25,6 +25,8 @@ const httpServer = createServer(app);
 const PORT = parseInt(process.env.PORT || '4000', 10);
 const FRONTEND_URLS = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
   'https://muj-mart.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
@@ -91,13 +93,25 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'mujmart',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-  } as any,
-});
+const storage = process.env.CLOUDINARY_API_KEY
+  ? new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'mujmart',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      } as any,
+    })
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      },
+    });
 
 const upload = multer({
   storage,
@@ -114,8 +128,12 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     res.status(400).json({ error: 'No file uploaded' });
     return;
   }
-  // req.file.path contains the Cloudinary secure_url when using CloudinaryStorage
-  res.json({ url: req.file.path, filename: req.file.filename });
+  
+  if (process.env.CLOUDINARY_API_KEY) {
+    res.json({ url: req.file.path, filename: req.file.filename });
+  } else {
+    res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename });
+  }
 });
 
 // ─────────────────────────────────────────────
