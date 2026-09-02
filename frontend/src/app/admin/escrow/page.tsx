@@ -27,15 +27,7 @@ export default function EscrowAdminPage() {
     }
   };
 
-  const handleVerify = async (id: string) => {
-    if (!confirm("Have you verified the payment in your bank account?")) return;
-    try {
-      await transactionsApi.verifyPayment(id);
-      loadTransactions();
-    } catch (e: any) {
-      alert(e.message || "Failed to verify");
-    }
-  };
+  // Manual payment verification is now handled automatically by Razorpay
 
   const handlePayout = async (id: string) => {
     if (!confirm("Have you successfully transferred the funds to the seller's UPI?")) return;
@@ -110,12 +102,7 @@ export default function EscrowAdminPage() {
                 </td>
                 <td style={{ padding: "16px 24px", textAlign: "right" }}>
                   {t.status === "verifying_payment" && (
-                    <button 
-                      onClick={() => handleVerify(t.id)}
-                      style={{ padding: "8px 16px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                    >
-                      Verify Payment
-                    </button>
+                    <span style={{ fontSize: 12, color: "#E8521A" }}>Automated via Razorpay</span>
                   )}
                   {t.status === "ready_for_payout" && (
                     <button 
