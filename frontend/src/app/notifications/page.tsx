@@ -115,15 +115,32 @@ export default function NotificationsPage() {
               )}
 
               {/* General Notifications Section */}
-              {notifications.map(notif => (
-                <div key={notif.id} onClick={() => !notif.isRead && handleMarkRead(notif.id)} style={{ background: notif.isRead ? "#F9FAFB" : "#fff", padding: 20, borderRadius: 12, border: "1px solid #F0DDD4", display: "flex", alignItems: "flex-start", gap: 12, cursor: notif.isRead ? "default" : "pointer", opacity: notif.isRead ? 0.7 : 1 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: notif.isRead ? "transparent" : "#E8521A", marginTop: 6 }} />
-                  <div>
-                    <p style={{ margin: "0 0 4px 0", color: "#1A0A00" }}>{notif.content}</p>
-                    <span style={{ fontSize: 12, color: "#9CA3AF" }}>{new Date(notif.createdAt).toLocaleString()}</span>
+              {notifications.map(notif => {
+                const isAccepted = notif.type === "REQUEST_ACCEPTED" && notif.relatedId;
+                
+                const NotificationContent = (
+                  <div key={notif.id} onClick={() => !notif.isRead && handleMarkRead(notif.id)} style={{ background: notif.isRead ? "#F9FAFB" : "#fff", padding: 20, borderRadius: 12, border: "1px solid #F0DDD4", display: "flex", alignItems: "flex-start", gap: 12, cursor: notif.isRead && !isAccepted ? "default" : "pointer", opacity: notif.isRead ? 0.7 : 1, transition: "0.2s" }} onMouseEnter={(e) => { if (isAccepted) e.currentTarget.style.borderColor = "#3B82F6"; }} onMouseLeave={(e) => { if (isAccepted) e.currentTarget.style.borderColor = "#F0DDD4"; }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: notif.isRead ? "transparent" : "#E8521A", marginTop: 6, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: "0 0 4px 0", color: "#1A0A00", lineHeight: 1.5 }}>
+                        {notif.content}
+                      </p>
+                      <span style={{ fontSize: 12, color: "#9CA3AF" }}>{new Date(notif.createdAt).toLocaleString()}</span>
+                    </div>
+                    {isAccepted && (
+                      <div style={{ alignSelf: "center", color: "#3B82F6", fontWeight: 700, fontSize: 13, background: "#EAF6FF", padding: "6px 12px", borderRadius: 50 }}>
+                        View Task
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+
+                return isAccepted ? (
+                  <a key={notif.id} href={`/listing/${notif.relatedId}`} style={{ textDecoration: "none" }} onClick={() => !notif.isRead && handleMarkRead(notif.id)}>
+                    {NotificationContent}
+                  </a>
+                ) : NotificationContent;
+              })}
             </>
           )}
         </div>

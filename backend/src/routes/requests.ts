@@ -112,8 +112,8 @@ router.put("/:id/status", authMiddleware, async (req: AuthRequest, res: Response
       data: {
         userId: request.requesterId,
         type: "REQUEST_ACCEPTED",
-        content: `Your request for ${request.listing?.title || 'the project'} was ${status}.`,
-        relatedId: request.id
+        content: `Your request for ${request.listing?.title || 'the project'} was accepted and the 30% advance payment was made. You can now access the project details and start your work!`,
+        relatedId: request.listingId
       }
     });
 
