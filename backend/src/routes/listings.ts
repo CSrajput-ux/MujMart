@@ -132,13 +132,13 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       if (authHeader && authHeader.startsWith('Bearer ')) {
         try {
           const token = authHeader.split(' ')[1];
-          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string, role: string };
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string, role: string };
           
-          if (decoded.userId === listing.sellerId || decoded.role === 'admin') {
+          if (decoded.id === listing.sellerId || decoded.role === 'admin') {
             isAuthorized = true;
           } else {
             const isHired = await prisma.projectRequest.findFirst({
-              where: { listingId: listing.id, requesterId: decoded.userId, status: 'accepted' }
+              where: { listingId: listing.id, requesterId: decoded.id, status: 'accepted' }
             });
             if (isHired) isAuthorized = true;
           }
