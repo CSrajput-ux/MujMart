@@ -125,6 +125,15 @@ export const listingsApi = {
       body: formData,
     });
   },
+
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file); // Multer expects 'image' key still
+    return apiFetch<{ url: string; filename: string }>('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 // ────────────────────────────────────────────
@@ -229,6 +238,36 @@ export const adminApi = {
 };
 
 // ────────────────────────────────────────────
+// Requests API
+// ────────────────────────────────────────────
+export const requestsApi = {
+  create: (listingId: string) =>
+    apiFetch<{ id: string }>('/api/requests', {
+      method: 'POST',
+      body: JSON.stringify({ listingId }),
+    }),
+  incoming: () =>
+    apiFetch<ProjectRequest[]>('/api/requests/incoming'),
+  updateStatus: (id: string, status: 'accepted' | 'rejected') =>
+    apiFetch<ProjectRequest>(`/api/requests/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
+};
+
+// ────────────────────────────────────────────
+// Notifications API
+// ────────────────────────────────────────────
+export const notificationsApi = {
+  list: () =>
+    apiFetch<Notification[]>('/api/notifications'),
+  markRead: (id: string) =>
+    apiFetch<Notification>(`/api/notifications/${id}/read`, {
+      method: 'PUT',
+    }),
+};
+
+// ────────────────────────────────────────────
 // Shared Types
 // ────────────────────────────────────────────
 export interface User {
@@ -251,10 +290,12 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  type: 'sell' | 'resale' | 'rent' | 'free';
+  type: 'sell' | 'resale' | 'rent' | 'free' | 'query';
   category: string;
   condition: 'New' | 'Good' | 'Fair' | 'Damaged';
   images: string[];
+  attachments?: string[];
+  deadline?: string;
   status: string;
   expiresAt: string;
   createdAt: string;
@@ -337,6 +378,27 @@ export interface MarginTotals {
   totalRevenue: number;
   totalMargins: number;
   avgDealSize: number;
+}
+
+export interface ProjectRequest {
+  id: string;
+  listingId: string;
+  requesterId: string;
+  ownerId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  listing?: Partial<Listing>;
+  requester?: Partial<User>;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  userId: string;
+  relatedId?: string;
 }
 
 // Helper: save token

@@ -31,6 +31,9 @@ model User {
   buyerTxns      Transaction[] @relation("BuyerTransactions")
   sellerTxns     Transaction[] @relation("SellerTransactions")
   disputes       Dispute[]
+  notifications  Notification[]
+  projectRequests ProjectRequest[] @relation("Requester")
+  ownedProjectRequests ProjectRequest[] @relation("Owner")
 }
 
 model Listing {
@@ -38,10 +41,12 @@ model Listing {
   title       String
   description String
   price       Float
-  type        String   // sell | resale | rent | free
+  type        String   // sell | resale | rent | free | share
   category    String
   condition   String   // New | Good | Fair | Damaged
   images      String   @default("[]") // JSON array of image URLs
+  attachments String   @default("[]") // JSON array of document URLs
+  deadline    DateTime? // Optional deadline for queries/tasks
   status      String   @default("active") // active | sold | expired | removed
   expiresAt   DateTime
   createdAt   DateTime @default(now())
@@ -50,6 +55,7 @@ model Listing {
   seller      User         @relation("SellerListings", fields: [sellerId], references: [id])
   threads     Thread[]
   transactions Transaction[]
+  projectRequests ProjectRequest[]
 }
 
 model Thread {
@@ -114,4 +120,32 @@ model Dispute {
 
   reporterId String
   reporter   User   @relation(fields: [reporterId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // PROJECT_REQUEST | REQUEST_ACCEPTED
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  relatedId String?  // Optional ID for the listing or request
+}
+
+model ProjectRequest {
+  id          String   @id @default(uuid())
+  status      String   @default("pending") // pending | accepted | rejected
+  createdAt   DateTime @default(now())
+
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+
+  requesterId String
+  requester   User     @relation("Requester", fields: [requesterId], references: [id])
+
+  ownerId     String
+  owner       User     @relation("Owner", fields: [ownerId], references: [id])
 }

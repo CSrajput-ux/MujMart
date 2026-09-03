@@ -9,10 +9,10 @@ const prisma = new PrismaClient();
 
 const PLATFORM_MARGIN_RATE = 0.05; // 5%
 
-// Helper to parse images JSON safely
-function parseImages(imagesJson: string): string[] {
+// Helper to parse JSON arrays safely
+function parseJsonArray(jsonString: string): string[] {
   try {
-    return JSON.parse(imagesJson);
+    return JSON.parse(jsonString);
   } catch {
     return [];
   }
@@ -84,7 +84,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     res.json({
       listings: listings.map((l) => ({
         ...l,
-        images: parseImages(l.images),
+        images: parseJsonArray(l.images),
+        attachments: parseJsonArray(l.attachments),
       })),
       pagination: {
         page: pageNum,
@@ -126,7 +127,8 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     res.json({
       listing: {
         ...listing,
-        images: parseImages(listing.images),
+        images: parseJsonArray(listing.images),
+        attachments: parseJsonArray(listing.attachments),
         platformFee: listing.price * PLATFORM_MARGIN_RATE,
       },
     });
@@ -139,20 +141,27 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // POST /api/listings — auth required
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, description, price, type, category, condition, images } = req.body;
+    const { title, description, price, type, category, condition, images, attachments, deadline } = req.body;
 
     if (!title || !description || !type || !category || !condition) {
       res.status(400).json({ error: 'Title, description, type, category, and condition are required' });
       return;
     }
 
-    const validTypes = ['sell', 'resale', 'rent', 'free'];
+    const validTypes = ['sell', 'resale', 'rent', 'free', 'query'];
     if (!validTypes.includes(type)) {
-      res.status(400).json({ error: 'Type must be sell, resale, rent, or free' });
+      res.status(400).json({ error: 'Invalid listing type' });
       return;
     }
 
     const finalPrice = type === 'free' ? 0 : (parseFloat(price) || 0);
+
+    if (type === 'query' || category === 'Projects & Assignments') {
+      if (finalPrice < 50) {
+        res.status(400).json({ error: 'Minimum rate for projects, assignments, and queries is ₹50' });
+        return;
+      }
+    }
 
     // Listings expire in 7 days
     const expiresAt = new Date();
@@ -167,6 +176,8 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promis
         category,
         condition,
         images: JSON.stringify(images || []),
+        attachments: JSON.stringify(attachments || []),
+        deadline: deadline ? new Date(deadline) : null,
         sellerId: req.user!.id,
         expiresAt,
       },
@@ -176,7 +187,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promis
     });
 
     res.status(201).json({
-      listing: { ...listing, images: parseImages(listing.images) },
+      listing: { ...listing, images: parseJsonArray(listing.images), attachments: parseJsonArray(listing.attachments) },
     });
   } catch (error) {
     console.error('Create listing error:', error);
@@ -199,7 +210,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    const { title, description, price, category, condition, images, status } = req.body;
+    const { title, description, price, category, condition, images, attachments, status, deadline } = req.body;
 
     const updated = await prisma.listing.update({
       where: { id: (req.params.id as string) },
@@ -210,14 +221,16 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response): Prom
         ...(category && { category }),
         ...(condition && { condition }),
         ...(images && { images: JSON.stringify(images) }),
+        ...(attachments && { attachments: JSON.stringify(attachments) }),
         ...(status && { status }),
+        ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null }),
       },
       include: {
         seller: { select: { id: true, alias: true, repScore: true, dealCount: true } },
       },
     });
 
-    res.json({ listing: { ...updated, images: parseImages(updated.images) } });
+    res.json({ listing: { ...updated, images: parseJsonArray(updated.images), attachments: parseJsonArray(updated.attachments) } });
   } catch (error) {
     console.error('Update listing error:', error);
     res.status(500).json({ error: 'Failed to update listing' });

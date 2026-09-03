@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDemo } from "@/lib/DemoContext";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
+import { notificationsApi, requestsApi } from "@/lib/api";
 
 export default function Navbar() {
   const { isDemo, demoUser } = useDemo();
@@ -13,10 +14,22 @@ export default function Navbar() {
   const { user, requireAuth, showAuthModal, logout } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  React.useEffect(() => {
+    if (user) {
+      Promise.all([notificationsApi.list(), requestsApi.incoming()]).then(([notifs, reqs]) => {
+        const pendingReqs = reqs.filter(r => r.status === 'pending').length;
+        const unreadNotifs = notifs.filter(n => !n.isRead).length;
+        setUnreadCount(pendingReqs + unreadNotifs);
+      }).catch(console.error);
+    }
+  }, [user]);
 
   const navItems = [
     { label: "Home", path: "/" },
     { label: "Rent", path: "/search?type=rent" },
+    { label: "Tasks", path: "/search?type=query" },
     { label: "Browse", path: "/search" },
     { label: "My Deals", path: "/my-listings" },
     { label: "Messages", path: "/chat/t1" },
@@ -164,6 +177,19 @@ export default function Navbar() {
                   </span>
                   {user.name}
                 </div>
+                
+                <a href="/notifications" style={{ position: "relative", color: "#5C3A1E", textDecoration: "none", display: "flex", alignItems: "center", marginRight: 8 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span style={{ position: "absolute", top: -8, right: -10, background: "#E8521A", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 10 }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </a>
+
                 <a href="/settings" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>Settings</a>
                 <button
                   onClick={logout}
@@ -352,6 +378,17 @@ export default function Navbar() {
                   </span>
                   {user.name}
                 </div>
+                <a
+                  href="/notifications"
+                  style={{ width: "100%", padding: "12px", background: "#f9fafb", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, fontWeight: 600, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}
+                >
+                  Notifications
+                  {unreadCount > 0 && (
+                    <span style={{ background: "#E8521A", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 10 }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </a>
                 <a
                   href="/settings"
                   style={{ width: "100%", padding: "12px", background: "#f9fafb", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, fontWeight: 600, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "block" }}

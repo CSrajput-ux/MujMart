@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
+import { useRouter } from "next/navigation";
 import type { Listing } from "@/lib/api";
 
 interface ListingCardProps {
@@ -13,6 +14,7 @@ interface ListingCardProps {
 export default function ListingCard({ listing }: ListingCardProps) {
   const { addToCart, cartItems } = useCart();
   const { requireAuth } = useAuth();
+  const router = useRouter();
   const inCart = cartItems.some((item) => item.id === listing.id);
 
   // Mock discount generation
@@ -140,52 +142,70 @@ export default function ListingCard({ listing }: ListingCardProps) {
             )}
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!inCart) {
-                requireAuth(() => addToCart(listing));
-              }
-            }}
-            style={{
-              width: "100%",
-              padding: "10px",
-              background: inCart ? "#F3F4F6" : "#E8521A",
-              color: inCart ? "#1A0A00" : "#fff",
-              border: inCart ? "1px solid #E5E7EB" : "none",
-              borderRadius: 6,
-              fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 600,
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              cursor: inCart ? "default" : "pointer",
-              transition: "background 0.2s",
-              marginBottom: 12,
-            }}
-            onMouseEnter={(e) => !inCart && (e.currentTarget.style.background = "#FF6B35")}
-            onMouseLeave={(e) => !inCart && (e.currentTarget.style.background = "#E8521A")}
-          >
-            {inCart ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Added to Cart
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <path d="M16 10a4 4 0 0 1-8 0"></path>
-                </svg>
-                Add to Cart
-              </>
-            )}
-          </button>
+          {/* Add to Cart / Apply Button */}
+          {listing.type === 'query' ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/listing/${listing.id}`);
+              }}
+              style={{
+                width: "100%", padding: "10px", background: "#3B82F6", color: "#fff",
+                border: "none", borderRadius: 6, fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 8, cursor: "pointer", transition: "background 0.2s", marginBottom: 12,
+              }}
+            >
+              View Task
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!inCart) {
+                  requireAuth(() => addToCart(listing));
+                }
+              }}
+              style={{
+                width: "100%",
+                padding: "10px",
+                background: inCart ? "#F3F4F6" : "#E8521A",
+                color: inCart ? "#1A0A00" : "#fff",
+                border: inCart ? "1px solid #E5E7EB" : "none",
+                borderRadius: 6,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                cursor: inCart ? "default" : "pointer",
+                transition: "background 0.2s",
+                marginBottom: 12,
+              }}
+              onMouseEnter={(e) => !inCart && (e.currentTarget.style.background = "#FF6B35")}
+              onMouseLeave={(e) => !inCart && (e.currentTarget.style.background = "#E8521A")}
+            >
+              {inCart ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Added to Cart
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                  </svg>
+                  Add to Cart
+                </>
+              )}
+            </button>
+          )}
 
           {/* Footer: Verified & ID */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>

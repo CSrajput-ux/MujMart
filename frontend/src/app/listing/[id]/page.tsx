@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/marketplace/Navbar";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
-import { listingsApi, threadsApi, transactionsApi, type Listing } from "@/lib/api";
+import { listingsApi, threadsApi, transactionsApi, requestsApi, type Listing } from "@/lib/api";
 
 const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
   New: { bg: "#DCFCE7", text: "#15803D" },
@@ -19,6 +19,7 @@ const TYPE_CONFIG: Record<string, { label: string; bg: string; text: string; bor
   resale: { label: "Resale", bg: "#F5F0FF", text: "#8B5CF6", border: "#8B5CF6" },
   rent: { label: "Rent", bg: "#FFFBEA", text: "#F59E0B", border: "#F59E0B" },
   free: { label: "Free", bg: "#EAFFF2", text: "#22C55E", border: "#22C55E" },
+  query: { label: "Query/Task", bg: "#EAF6FF", text: "#3B82F6", border: "#3B82F6" },
 };
 
 export default function ListingDetailPage() {
@@ -38,6 +39,13 @@ export default function ListingDetailPage() {
   const [checkoutStep, setCheckoutStep] = useState<"processing" | "success">("processing");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  
+  // Request states
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+
+  // Document preview state
+  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -127,6 +135,22 @@ export default function ListingDetailPage() {
     });
   };
 
+  const handleRequestAccess = () => {
+    if (!listing) return;
+    requireAuth(async () => {
+      try {
+        setRequestLoading(true);
+        await requestsApi.create(listing.id);
+        setRequestSent(true);
+        alert("Application sent to the owner!");
+      } catch (err: any) {
+        alert(err.message || "Failed to send application");
+      } finally {
+        setRequestLoading(false);
+      }
+    });
+  };
+
   if (loading) {
     return (
       <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
@@ -198,7 +222,30 @@ export default function ListingDetailPage() {
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0DDD4", padding: 24, marginTop: 24 }}>
               <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", marginBottom: 12 }}>Description</h2>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#4B5563", lineHeight: 1.7 }}>{listing.description}</p>
+              
+              {listing.deadline && (
+                <div style={{ marginTop: 16, padding: 12, background: "#FFFBEA", borderRadius: 8, border: "1px solid #FDE68A", display: "inline-block" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#92400E", fontFamily: "'DM Sans', sans-serif" }}>
+                    ⏰ Deadline: {new Date(listing.deadline).toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {listing.attachments && listing.attachments.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0DDD4", padding: 24, marginTop: 24 }}>
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", marginBottom: 12 }}>Attachments</h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {listing.attachments.map((doc, i) => (
+                    <button key={i} onClick={() => setPreviewDoc(doc)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F0DDD4", cursor: "pointer", transition: "border-color 0.2s", textAlign: "left", width: "100%" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#F0DDD4")}>
+                      <span style={{ fontSize: 20 }}>📄</span>
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, flex: 1, color: "#1A0A00" }}>Document {i + 1}</span>
+                      <span style={{ color: "#3B82F6", fontSize: 13, fontWeight: 600 }}>Live Preview</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ position: "sticky", top: 80 }}>
@@ -222,14 +269,20 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={handleBuyNow} style={{ width: "100%", padding: "14px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FF6B35")} onMouseLeave={(e) => (e.currentTarget.style.background = "#E8521A")}>
-                  Buy Now (Secure Escrow)
+              {listing.type === 'query' ? (
+                <button onClick={handleRequestAccess} disabled={requestSent || requestLoading} style={{ width: "100%", padding: "14px", background: requestSent ? "#10B981" : "#3B82F6", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: requestSent || requestLoading ? "not-allowed" : "pointer", transition: "0.2s" }}>
+                  {requestLoading ? "Sending..." : requestSent ? "Application Sent ✓" : "Apply for Task"}
                 </button>
-                <button onClick={handleNegotiate} style={{ width: "100%", padding: "14px", background: "#fff", border: "1.5px solid #F0DDD4", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FDF8F5")} onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}>
-                  Negotiate Anonymously
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <button onClick={handleBuyNow} style={{ width: "100%", padding: "14px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FF6B35")} onMouseLeave={(e) => (e.currentTarget.style.background = "#E8521A")}>
+                    Buy Now (Secure Escrow)
+                  </button>
+                  <button onClick={handleNegotiate} style={{ width: "100%", padding: "14px", background: "#fff", border: "1.5px solid #F0DDD4", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FDF8F5")} onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}>
+                    Negotiate Anonymously
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -272,6 +325,27 @@ export default function ListingDetailPage() {
                   <button onClick={() => router.push("/my-listings")} style={{ padding: "10px 24px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer" }}>Go to My Deals</button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        {/* Document Preview Modal */}
+        {previewDoc && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} onClick={() => setPreviewDoc(null)} />
+            
+            <div style={{ position: "relative", width: "100%", maxWidth: 900, height: "85vh", background: "#fff", borderRadius: 16, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, margin: 0, color: "#1A0A00" }}>Document Preview</h3>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <a href={previewDoc} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 16px", background: "#3B82F6", color: "#fff", textDecoration: "none", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>Download Original</a>
+                  <button onClick={() => setPreviewDoc(null)} style={{ width: 32, height: 32, borderRadius: "50%", background: "#F3F4F6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", fontWeight: "bold" }}>✕</button>
+                </div>
+              </div>
+              <iframe 
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewDoc)}&embedded=true`} 
+                style={{ width: "100%", flex: 1, border: "none" }}
+                title="Document Preview"
+              />
             </div>
           </div>
         )}

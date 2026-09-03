@@ -4,28 +4,39 @@ import React, { useState, useRef } from "react";
 import Navbar from "@/components/marketplace/Navbar";
 import { listingsApi, type Listing } from "@/lib/api";
 
-type ListingType = "sell" | "resale" | "rent" | "free";
+type ListingType = "sell" | "resale" | "rent" | "free" | "query";
 
-const steps = ["Type", "Photos", "Details", "Pricing", "Delivery"];
+const steps = ["Type", "Media & Files", "Details", "Pricing", "Delivery"];
 
 const typeConfig: Record<ListingType, { label: string; icon: string; bg: string; border: string; text: string }> = {
   sell: { label: "Sell", icon: "🏷️", bg: "#FFF0EA", border: "#E8521A", text: "#E8521A" },
   resale: { label: "Resale", icon: "🔄", bg: "#F5F0FF", border: "#8B5CF6", text: "#8B5CF6" },
   rent: { label: "Rent", icon: "📦", bg: "#FFFBEA", border: "#F59E0B", text: "#F59E0B" },
   free: { label: "Free", icon: "🎁", bg: "#EAFFF2", border: "#22C55E", text: "#22C55E" },
+  query: { label: "Query/Task", icon: "🤝", bg: "#EAF6FF", border: "#3B82F6", text: "#3B82F6" },
 };
 
 export default function PostListingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [listingType, setListingType] = useState<ListingType | null>(null);
   const [formData, setFormData] = useState({
-    title: "", description: "", category: "", condition: "", price: "", deposit: "", rentRate: "", delivery: "pickup",
+    title: "", description: "", category: "", condition: "", price: "", deposit: "", rentRate: "", delivery: "pickup", deadline: "",
   });
   const [images, setImages] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
-  const handleNext = () => { if (currentStep < steps.length - 1) setCurrentStep((p) => p + 1); };
+  const handleNext = () => { 
+    if (currentStep === 3) {
+      if ((listingType === 'query' || formData.category === 'Projects & Assignments') && parseFloat(formData.price) < 50) {
+        alert("Minimum rate for Queries / Projects & Assignments is ₹50");
+        return;
+      }
+    }
+    if (currentStep < steps.length - 1) setCurrentStep((p) => p + 1); 
+  };
   const handleBack = () => { if (currentStep > 0) setCurrentStep((p) => p - 1); };
   const updateField = (field: string, value: string) => setFormData((p) => ({ ...p, [field]: value }));
 
@@ -51,8 +62,34 @@ export default function PostListingPage() {
     }
   };
 
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploading(true);
+    try {
+      const newDocs = [...attachments];
+      for (const file of Array.from(e.target.files)) {
+        if (newDocs.length >= 5) break;
+        const res = await listingsApi.uploadFile(file);
+        const isAbsolute = res.url.startsWith('http');
+        const fullUrl = isAbsolute ? res.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${res.url}`;
+        newDocs.push(fullUrl);
+      }
+      setAttachments(newDocs);
+    } catch (err: any) {
+      console.error("Upload failed:", err);
+      alert("Upload failed: " + (err.message || err));
+    } finally {
+      setUploading(false);
+      if (docInputRef.current) docInputRef.current.value = "";
+    }
+  };
+
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
   };
 
   const inputStyle: React.CSSProperties = {
@@ -107,6 +144,7 @@ export default function PostListingPage() {
                         {type === "resale" && "Second-hand items"}
                         {type === "rent" && "Rent out temporarily"}
                         {type === "free" && "Give away for free"}
+                        {type === "query" && "Hire someone to complete an assignment, project, or task"}
                       </span>
                     </button>
                   );
@@ -117,7 +155,7 @@ export default function PostListingPage() {
 
           {currentStep === 1 && (
             <div>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", margin: "0 0 16px 0" }}>Add Photos</h2>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", margin: "0 0 16px 0" }}>Add Photos {listingType === 'query' && "& Files"}</h2>
               
               <input 
                 type="file" 
@@ -125,6 +163,15 @@ export default function PostListingPage() {
                 onChange={handleFileUpload} 
                 multiple 
                 accept="image/jpeg, image/png, image/webp, image/gif" 
+                style={{ display: "none" }} 
+              />
+              
+              <input 
+                type="file" 
+                ref={docInputRef} 
+                onChange={handleDocUpload} 
+                multiple 
+                accept=".pdf,.ppt,.pptx,.doc,.docx" 
                 style={{ display: "none" }} 
               />
               
@@ -154,6 +201,27 @@ export default function PostListingPage() {
                   <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>Up to 8 photos · 5MB max each · PNG, JPG</p>
                 </div>
               )}
+
+              {listingType === 'query' && (
+                <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid #F0DDD4" }}>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 14, color: "#1A0A00", margin: "0 0 12px 0" }}>Attach Documents (PDF, PPT, DOC)</h3>
+                  {attachments.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                      {attachments.map((doc, idx) => (
+                        <div key={idx} style={{ padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <a href={doc} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#3B82F6", textDecoration: "none" }}>Document {idx + 1}</a>
+                          <button onClick={() => removeAttachment(idx)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {attachments.length < 5 && (
+                    <button onClick={() => docInputRef.current?.click()} disabled={uploading} style={{ padding: "10px 16px", background: "#fff", border: "1.5px dashed #F0DDD4", borderRadius: 8, color: "#E8521A", fontSize: 13, fontWeight: 600, cursor: uploading ? "wait" : "pointer", width: "100%" }}>
+                      + Upload File
+                    </button>
+                  )}
+                </div>
+              )}
               
               <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", marginTop: 12 }}>📌 First photo will be the thumbnail</p>
             </div>
@@ -170,7 +238,7 @@ export default function PostListingPage() {
                 <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#1A0A00", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>Category</label>
                 <select value={formData.category} onChange={(e) => updateField("category", e.target.value)} style={{ ...inputStyle, background: "#fff" }}>
                   <option value="">Select category</option>
-                  {["Electronics", "Books", "Furniture", "Cycles", "Clothing", "Gaming", "Room Essentials", "Other"].map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                  {["Electronics", "Books", "Furniture", "Cycles", "Clothing", "Gaming", "Room Essentials", "Projects & Assignments", "Other"].map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
                 </select>
               </div>
               <div>
@@ -185,6 +253,12 @@ export default function PostListingPage() {
                 <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#1A0A00", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>Description</label>
                 <textarea value={formData.description} onChange={(e) => updateField("description", e.target.value)} placeholder="Describe your item..." rows={4} style={{ ...inputStyle, resize: "none" }} />
               </div>
+              {listingType === 'query' && (
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#1A0A00", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>Deadline (Date & Time)</label>
+                  <input type="datetime-local" value={formData.deadline} onChange={(e) => updateField("deadline", e.target.value)} style={inputStyle} />
+                </div>
+              )}
             </div>
           )}
 
@@ -201,7 +275,7 @@ export default function PostListingPage() {
                 <>
                   <div>
                     <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#1A0A00", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>
-                      {listingType === "rent" ? "Daily Rate (₹)" : "Price (₹)"}
+                      {listingType === "rent" ? "Daily Rate (₹)" : listingType === "query" ? "Budget / Rate (₹) (Min ₹50)" : "Price (₹)"}
                     </label>
                     <div style={{ position: "relative" }}>
                       <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#6B7280" }}>₹</span>
@@ -257,7 +331,15 @@ export default function PostListingPage() {
                 try {
                   setUploading(true);
                   const submitPrice = listingType === 'rent' ? formData.rentRate : formData.price;
-                  await listingsApi.create({ ...formData, condition: formData.condition as Listing["condition"], price: parseFloat(submitPrice) || 0, type: listingType!, images });
+                  await listingsApi.create({ 
+                    ...formData, 
+                    condition: formData.condition as Listing["condition"], 
+                    price: parseFloat(submitPrice) || 0, 
+                    type: listingType!, 
+                    images, 
+                    attachments,
+                    deadline: formData.deadline || undefined 
+                  });
                   window.location.href = "/my-listings";
                 } catch (err) {
                   alert("Failed to create listing: " + (err as Error).message);

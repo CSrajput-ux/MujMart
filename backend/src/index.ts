@@ -17,6 +17,8 @@ import listingsRoutes from './routes/listings';
 import threadsRoutes from './routes/threads';
 import transactionsRoutes from './routes/transactions';
 import adminRoutes from './routes/admin';
+import requestsRoutes from './routes/requests';
+import notificationsRoutes from './routes/notifications';
 import { initSocket } from './socket/chat';
 
 const app = express();
@@ -95,15 +97,22 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'mujmart',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-  } as any,
+  params: async (req, file) => {
+    const isDoc = file.mimetype.includes('pdf') || 
+                  file.mimetype.includes('document') || 
+                  file.mimetype.includes('msword') || 
+                  file.mimetype.includes('powerpoint') || 
+                  file.mimetype.includes('presentation');
+    return {
+      folder: 'mujmart',
+      resource_type: isDoc ? 'raw' : 'auto',
+    };
+  },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB to allow for PPT/PDFs
 });
 
 // Serve local uploads statically just in case old listings reference them
@@ -128,6 +137,8 @@ app.use('/api/listings', listingsRoutes);
 app.use('/api/threads', threadsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/requests', requestsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -153,7 +164,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   console.error('Unhandled error:', err);
 
   if (err.code === 'LIMIT_FILE_SIZE') {
-    res.status(400).json({ error: 'File too large. Maximum 5MB allowed.' });
+    res.status(400).json({ error: 'File too large. Maximum 10MB allowed.' });
     return;
   }
 
