@@ -1,12 +1,12 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Create a new project request
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { listingId } = req.body;
     const requesterId = req.user!.id;
@@ -41,7 +41,7 @@ router.post("/", authMiddleware, async (req, res) => {
       data: {
         userId: listing.sellerId,
         type: "PROJECT_REQUEST",
-        content: `${req.user!.name || 'Someone'} requested access to your project: ${listing.title}`,
+        content: `${req.user!.alias || 'Someone'} requested access to your project: ${listing.title}`,
         relatedId: request.id
       }
     });
@@ -54,7 +54,7 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 // Get incoming requests
-router.get("/incoming", authMiddleware, async (req, res) => {
+router.get("/incoming", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const requests = await prisma.projectRequest.findMany({
       where: { ownerId: req.user!.id },
@@ -74,9 +74,9 @@ router.get("/incoming", authMiddleware, async (req, res) => {
 });
 
 // Accept or Reject request
-router.put("/:id/status", authMiddleware, async (req, res) => {
+router.put("/:id/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body; // "accepted" | "rejected"
     const ownerId = req.user!.id;
 
@@ -89,12 +89,30 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
       data: { status }
     });
 
+    // If accepted, update the listing status to 'hired'
+    if (status === "accepted") {
+      await prisma.listing.update({
+        where: { id: request.listingId },
+        data: { status: "hired" }
+      });
+      
+      // Also reject all other pending requests for this listing
+      await prisma.projectRequest.updateMany({
+        where: { 
+          listingId: request.listingId,
+          status: "pending",
+          id: { not: id }
+        },
+        data: { status: "rejected" }
+      });
+    }
+
     // Notify the requester
     await prisma.notification.create({
       data: {
         userId: request.requesterId,
         type: "REQUEST_ACCEPTED",
-        content: `Your request for ${request.listing.title} was ${status}.`,
+        content: `Your request for ${request.listing?.title || 'the project'} was ${status}.`,
         relatedId: request.id
       }
     });

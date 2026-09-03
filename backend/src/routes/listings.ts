@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import path from 'path';
 import fs from 'fs';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -124,12 +125,38 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    let isAuthorized = true;
+    if (listing.type === 'query') {
+      isAuthorized = false;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string, role: string };
+          
+          if (decoded.userId === listing.sellerId || decoded.role === 'admin') {
+            isAuthorized = true;
+          } else {
+            const isHired = await prisma.projectRequest.findFirst({
+              where: { listingId: listing.id, requesterId: decoded.userId, status: 'accepted' }
+            });
+            if (isHired) isAuthorized = true;
+          }
+        } catch (e) {
+          // ignore invalid token
+        }
+      }
+    }
+
+    const finalAttachments = isAuthorized ? parseJsonArray(listing.attachments) : [];
+
     res.json({
       listing: {
         ...listing,
         images: parseJsonArray(listing.images),
-        attachments: parseJsonArray(listing.attachments),
+        attachments: finalAttachments,
         platformFee: listing.price * PLATFORM_MARGIN_RATE,
+        isAuthorized
       },
     });
   } catch (error) {
@@ -259,7 +286,7 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response): P
     });
 
     // Clean up image files if stored locally
-    const images = parseImages(listing.images);
+    const images = parseJsonArray(listing.images);
     for (const img of images) {
       if (img.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, '../../uploads', path.basename(img));

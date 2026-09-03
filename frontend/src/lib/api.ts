@@ -301,6 +301,7 @@ export interface Listing {
   createdAt: string;
   sellerId: string;
   seller: Pick<User, 'id' | 'alias' | 'repScore' | 'dealCount'>;
+  isAuthorized?: boolean;
 }
 
 export interface Thread {

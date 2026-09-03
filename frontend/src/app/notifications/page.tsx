@@ -10,6 +10,11 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [requests, setRequests] = useState<ProjectRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Payment Modal State
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<ProjectRequest | null>(null);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -30,13 +35,26 @@ export default function NotificationsPage() {
     loadData();
   }, [user]);
 
-  const handleAcceptRequest = async (id: string) => {
+  const handleHireClick = (req: ProjectRequest) => {
+    setSelectedRequest(req);
+    setPaymentModalOpen(true);
+  };
+
+  const processPaymentAndHire = async () => {
+    if (!selectedRequest) return;
+    setPaying(true);
     try {
-      await requestsApi.updateStatus(id, "accepted");
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "accepted" } : r));
-      alert("Hired successfully! The task has been assigned.");
+      // Simulate payment delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      await requestsApi.updateStatus(selectedRequest.id, "accepted");
+      setRequests(prev => prev.map(r => r.id === selectedRequest.id ? { ...r, status: "accepted" } : r));
+      alert("Payment successful! You have hired the freelancer.");
+      setPaymentModalOpen(false);
     } catch (err: any) {
-      alert(err.message || "Failed to hire user");
+      alert(err.message || "Failed to process payment");
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -88,7 +106,7 @@ export default function NotificationsPage() {
                         </p>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{req.listing?.title}</p>
                       </div>
-                      <button onClick={() => handleAcceptRequest(req.id)} style={{ padding: "8px 16px", background: "#10B981", color: "#fff", borderRadius: 50, border: "none", fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#059669")} onMouseLeave={(e) => (e.currentTarget.style.background = "#10B981")}>
+                      <button onClick={() => handleHireClick(req)} style={{ padding: "8px 16px", background: "#10B981", color: "#fff", borderRadius: 50, border: "none", fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#059669")} onMouseLeave={(e) => (e.currentTarget.style.background = "#10B981")}>
                         Hire
                       </button>
                     </div>
@@ -110,6 +128,53 @@ export default function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {paymentModalOpen && selectedRequest && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} onClick={() => !paying && setPaymentModalOpen(false)} />
+          
+          <div style={{ position: "relative", width: "100%", maxWidth: 450, background: "#fff", borderRadius: 20, padding: 32, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: "#1A0A00", marginTop: 0, marginBottom: 8 }}>Advance Payment</h2>
+            <p style={{ color: "#6B7280", margin: "0 0 24px 0", fontSize: 14 }}>You must pay a minimum of 30% to hire and unlock project details for the freelancer.</p>
+            
+            <div style={{ background: "#F9FAFB", padding: 20, borderRadius: 12, marginBottom: 24, border: "1px solid #E5E7EB" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ color: "#4B5563" }}>Project Budget</span>
+                <span style={{ fontWeight: 600 }}>₹{selectedRequest.listing?.price || 0}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ color: "#4B5563" }}>Advance Required</span>
+                <span style={{ fontWeight: 600 }}>30%</span>
+              </div>
+              <div style={{ height: 1, background: "#E5E7EB", margin: "12px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#1A0A00", fontWeight: 700 }}>Total to Pay</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: "#E8521A", fontFamily: "'Syne', sans-serif" }}>
+                  ₹{Math.round((selectedRequest.listing?.price || 0) * 0.3)}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button 
+                onClick={() => setPaymentModalOpen(false)}
+                disabled={paying}
+                style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#4B5563", borderRadius: 12, border: "none", fontWeight: 600, cursor: paying ? "not-allowed" : "pointer" }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={processPaymentAndHire}
+                disabled={paying}
+                style={{ flex: 2, padding: "12px", background: paying ? "#FCA5A5" : "#10B981", color: "#fff", borderRadius: 12, border: "none", fontWeight: 700, cursor: paying ? "not-allowed" : "pointer" }}
+              >
+                {paying ? "Processing..." : "Pay Securely & Hire"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

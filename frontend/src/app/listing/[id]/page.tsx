@@ -221,6 +221,24 @@ export default function ListingDetailPage() {
 
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0DDD4", padding: 24, marginTop: 24 }}>
               <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", marginBottom: 12 }}>Description</h2>
+              
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                <span style={{ display: "inline-block", padding: "4px 12px", background: "#FFF0EA", color: "#E8521A", borderRadius: 50, fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  {listing.category}
+                </span>
+                {listing.status === 'hired' && (
+                  <span style={{ display: "inline-block", padding: "4px 12px", background: "#D1FAE5", color: "#065F46", borderRadius: 50, fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    ASSIGNED
+                  </span>
+                )}
+              </div>
+
+              {listing.isAuthorized === false && (
+                <div style={{ marginBottom: 16, padding: "12px 16px", background: "#FEF2F2", color: "#991B1B", borderRadius: 8, border: "1px solid #FCA5A5", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                  🔒 <strong>Private Details:</strong> Project files and full details are hidden. Only the hired freelancer can view attachments.
+                </div>
+              )}
+
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#4B5563", lineHeight: 1.7 }}>{listing.description}</p>
               
               {listing.deadline && (

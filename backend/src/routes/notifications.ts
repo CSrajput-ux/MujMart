@@ -1,12 +1,12 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get unread notifications
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user!.id },
@@ -20,9 +20,9 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // Mark as read
-router.put("/:id/read", authMiddleware, async (req, res) => {
+router.put("/:id/read", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const notification = await prisma.notification.findUnique({ where: { id } });
     
     if (!notification) return res.status(404).json({ error: "Not found" });
