@@ -18,10 +18,11 @@ export default function HomePage() {
     async function loadListings() {
       try {
         setLoading(true);
-        const res = await listingsApi.list({ limit: 12 });
+        const res = await listingsApi.list({ limit: 20 });
         setAllListings(res.listings || []);
       } catch (err) {
         console.error("Failed to fetch listings:", err);
+        setAllListings([]);
       } finally {
         setLoading(false);
       }
@@ -149,12 +150,12 @@ export default function HomePage() {
             </p>
           </div>
           <a
-            href="/search"
+            href={selectedCategory !== "All" ? `/search?category=${encodeURIComponent(selectedCategory)}` : "/search"}
             style={{
               fontSize: 13,
               color: "#E8521A",
               fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 500,
+              fontWeight: 600,
               textDecoration: "none",
               whiteSpace: "nowrap",
             }}
@@ -182,13 +183,54 @@ export default function HomePage() {
           <div
             style={{
               textAlign: "center",
-              padding: "64px 0",
-              color: "#6B7280",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
+              padding: "48px 24px",
+              background: "#fff",
+              borderRadius: 16,
+              border: "1px dashed #F0DDD4",
+              marginTop: 16,
             }}
           >
-            No listings found in this category.
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
+            <h3
+              style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#1A0A00",
+                margin: "0 0 6px 0",
+              }}
+            >
+              No listings found {selectedCategory !== "All" ? `in "${selectedCategory}"` : "yet"}
+            </h3>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#6B7280",
+                fontFamily: "'DM Sans', sans-serif",
+                margin: "0 0 16px 0",
+              }}
+            >
+              Be the first to list an item on campus!
+            </p>
+            <a
+              href="/post"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 18px",
+                background: "#E8521A",
+                color: "#fff",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: "'Syne', sans-serif",
+                textDecoration: "none",
+                transition: "all 0.2s",
+              }}
+            >
+              + Post a Listing
+            </a>
           </div>
         )}
       </section>
@@ -271,15 +313,29 @@ export default function HomePage() {
             {[
               {
                 title: "Marketplace",
-                links: ["Browse", "Sell", "Rent", "Free"],
+                links: [
+                  { label: "Browse", href: "/search" },
+                  { label: "Sell", href: "/search?type=sell" },
+                  { label: "Resale", href: "/search?type=resale" },
+                  { label: "Rent", href: "/search?type=rent" },
+                  { label: "Free", href: "/search?type=free" },
+                ],
               },
               {
                 title: "Support",
-                links: ["Help Center", "Safety Tips", "Report Issue"],
+                links: [
+                  { label: "Help Center", href: "#" },
+                  { label: "Safety Tips", href: "#" },
+                  { label: "Report Issue", href: "#" },
+                ],
               },
               {
                 title: "Legal",
-                links: ["Privacy Policy", "Terms of Service", "Community Rules"],
+                links: [
+                  { label: "Privacy Policy", href: "#" },
+                  { label: "Terms of Service", href: "#" },
+                  { label: "Community Rules", href: "#" },
+                ],
               },
             ].map((section) => (
               <div key={section.title}>
@@ -296,9 +352,9 @@ export default function HomePage() {
                 </h4>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                   {section.links.map((link) => (
-                    <li key={link} style={{ marginBottom: 8 }}>
+                    <li key={link.label} style={{ marginBottom: 8 }}>
                       <a
-                        href="#"
+                        href={link.href}
                         style={{
                           fontSize: 12,
                           color: "#6B7280",
@@ -313,7 +369,7 @@ export default function HomePage() {
                           (e.currentTarget.style.color = "#6B7280")
                         }
                       >
-                        {link}
+                        {link.label}
                       </a>
                     </li>
                   ))}

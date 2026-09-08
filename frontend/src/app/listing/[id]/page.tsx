@@ -58,6 +58,7 @@ export default function ListingDetailPage() {
         setRelatedListings(rel.listings.filter(l => l.id !== id).slice(0, 4));
       } catch (err) {
         console.error("Failed to load listing:", err);
+        setListing(null);
       } finally {
         setLoading(false);
       }

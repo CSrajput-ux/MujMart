@@ -131,28 +131,45 @@ export default function HeroBanner() {
                 lineHeight: 1.4,
               }}
             >
-              The premium marketplace built for MUJ students. Buy, sell, and trade within your campus.
+              {currentSlide.description || "The premium marketplace built for MUJ students. Buy, sell, and trade within your campus."}
             </p>
           </div>
 
           {/* Tags */}
-          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-            {["Buy", "Sell", "Rent", "Thrift", "Brands"].map((tag, i) => (
-              <span
-                key={tag}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "#6B7280",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            {[
+              { label: "Buy", href: "/search" },
+              { label: "Sell", href: "/search?type=sell" },
+              { label: "Rent", href: "/search?type=rent" },
+              { label: "Thrift", href: "/search?type=resale" },
+              { label: "Brands", href: "/search?category=Electronics" },
+            ].map((tag, i) => (
+              <React.Fragment key={tag.label}>
                 {i > 0 && <div style={{ width: 3, height: 3, borderRadius: "50%", background: "#D1D5DB" }} />}
-                {tag}
-              </span>
+                <a
+                  href={tag.href}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#6B7280",
+                    fontFamily: "'DM Sans', sans-serif",
+                    textDecoration: "none",
+                    transition: "all 0.2s ease",
+                    padding: "2px 6px",
+                    borderRadius: 6,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#E8521A";
+                    e.currentTarget.style.background = "rgba(232, 82, 26, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#6B7280";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {tag.label}
+                </a>
+              </React.Fragment>
             ))}
           </div>
 
