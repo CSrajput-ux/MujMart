@@ -14,7 +14,7 @@ export default function TaskWorkspacePage() {
 
   const [listing, setListing] = useState<(Listing & { platformFee?: number; isAuthorized?: boolean }) | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"details" | "deliverables" | "chat">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "deliverables">("details");
   
   // Submission form state
   const [submissionLink, setSubmissionLink] = useState("");
@@ -22,8 +22,9 @@ export default function TaskWorkspacePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Document preview state
+  // Preview modals
   const [previewDoc, setPreviewDoc] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
@@ -128,6 +129,10 @@ export default function TaskWorkspacePage() {
   const advanceAmount = Math.round(listing.price * 0.3);
   const remainingAmount = listing.price - advanceAmount;
 
+  const validImages = (listing.images || []).filter((img) => img && typeof img === "string" && img.trim() !== "");
+  const validAttachments = (listing.attachments || []).filter((doc) => doc && typeof doc === "string" && doc.trim() !== "");
+  const totalFilesCount = validImages.length + validAttachments.length;
+
   return (
     <main style={{ minHeight: "100vh", background: "#FDF8F5", paddingBottom: 80 }}>
       <Navbar />
@@ -199,7 +204,7 @@ export default function TaskWorkspacePage() {
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
-                🔓 PROJECT UNLOCKED & ACTIVE
+                🔓 PROJECT & ATTACHMENTS UNLOCKED
               </span>
 
               <span
@@ -352,7 +357,7 @@ export default function TaskWorkspacePage() {
               ))}
             </div>
 
-            {/* TAB 1: Complete Unlocked Details & Files */}
+            {/* TAB 1: Complete Unlocked Details, Photos & Files */}
             {activeTab === "details" && (
               <>
                 {/* Milestone Progress Bar */}
@@ -469,91 +474,176 @@ export default function TaskWorkspacePage() {
                   </div>
                 </div>
 
-                {/* Unlocked Attachments & Documents Section */}
-                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
-                      Project Files & Attachments ({listing.attachments?.length || 0})
-                    </h2>
-                    <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
-                      Direct download & live preview available
-                    </span>
-                  </div>
+                {/* Unlocked Photos & Screenshots Section */}
+                {validImages.length > 0 && (
+                  <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
+                        📸 Client Photos & Question Screenshots ({validImages.length})
+                      </h2>
+                      <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                        Click any image to view in full resolution
+                      </span>
+                    </div>
 
-                  {listing.attachments && listing.attachments.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {listing.attachments.map((doc, idx) => (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                        gap: 16,
+                      }}
+                    >
+                      {validImages.map((imgUrl, idx) => (
                         <div
                           key={idx}
+                          onClick={() => setPreviewImage(imgUrl)}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "14px 18px",
-                            background: "#F9FAFB",
+                            position: "relative",
+                            aspectRatio: "4/3",
                             borderRadius: 14,
-                            border: "1px solid #F0DDD4",
-                            transition: "all 0.2s",
+                            overflow: "hidden",
+                            border: "1.5px solid #F0DDD4",
+                            cursor: "pointer",
+                            background: "#F9FAFB",
+                            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "translateY(-4px)";
+                            e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)";
+                            e.currentTarget.style.borderColor = "#E8521A";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "none";
+                            e.currentTarget.style.borderColor = "#F0DDD4";
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <span style={{ fontSize: 24 }}>📄</span>
-                            <div>
-                              <p style={{ margin: "0 0 2px 0", fontWeight: 700, fontSize: 14, color: "#1A0A00", fontFamily: "'DM Sans', sans-serif" }}>
-                                Document Attachment {idx + 1}
-                              </p>
-                              <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
-                                Verified Project File
-                              </span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <button
-                              onClick={() => setPreviewDoc(doc)}
+                          <img
+                            src={imgUrl}
+                            alt={`Assignment photo ${idx + 1}`}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)",
+                              display: "flex",
+                              alignItems: "flex-end",
+                              padding: "10px",
+                            }}
+                          >
+                            <span
                               style={{
-                                padding: "8px 14px",
-                                background: "#fff",
-                                border: "1.5px solid #F0DDD4",
-                                borderRadius: 8,
-                                color: "#1A0A00",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                fontFamily: "'DM Sans', sans-serif",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                              }}
-                            >
-                              Live Preview
-                            </button>
-                            <a
-                              href={doc}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "8px 16px",
-                                background: "#E8521A",
                                 color: "#fff",
-                                borderRadius: 8,
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 fontFamily: "'DM Sans', sans-serif",
-                                textDecoration: "none",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
                               }}
                             >
-                              Download ⬇
-                            </a>
+                              🔍 Photo {idx + 1}
+                            </span>
                           </div>
                         </div>
                       ))}
                     </div>
-                  ) : (
+                  </div>
+                )}
+
+                {/* Unlocked Documents & Files Section */}
+                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
+                      📁 Assignment Documents & Files ({validAttachments.length})
+                    </h2>
+                    <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                      PDF, DOC, code & reference sheets
+                    </span>
+                  </div>
+
+                  {validAttachments.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {validAttachments.map((doc, idx) => {
+                        const isPdf = doc.toLowerCase().endsWith(".pdf");
+                        const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(doc);
+
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "14px 18px",
+                              background: "#F9FAFB",
+                              borderRadius: 14,
+                              border: "1px solid #F0DDD4",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                              <span style={{ fontSize: 26 }}>{isPdf ? "📕" : isImage ? "🖼️" : "📄"}</span>
+                              <div>
+                                <p style={{ margin: "0 0 2px 0", fontWeight: 700, fontSize: 14, color: "#1A0A00", fontFamily: "'DM Sans', sans-serif" }}>
+                                  Attachment {idx + 1} {isPdf ? "(PDF Document)" : isImage ? "(Image File)" : "(Project File)"}
+                                </p>
+                                <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                                  Verified Client File
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                onClick={() => isImage ? setPreviewImage(doc) : setPreviewDoc(doc)}
+                                style={{
+                                  padding: "8px 14px",
+                                  background: "#fff",
+                                  border: "1.5px solid #F0DDD4",
+                                  borderRadius: 8,
+                                  color: "#1A0A00",
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  fontFamily: "'DM Sans', sans-serif",
+                                  cursor: "pointer",
+                                  transition: "all 0.2s",
+                                }}
+                              >
+                                Live Preview
+                              </button>
+                              <a
+                                href={doc}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "8px 16px",
+                                  background: "#E8521A",
+                                  color: "#fff",
+                                  borderRadius: 8,
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  fontFamily: "'DM Sans', sans-serif",
+                                  textDecoration: "none",
+                                }}
+                              >
+                                Download ⬇
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : validImages.length === 0 ? (
                     <div
                       style={{
-                        padding: "32px 20px",
+                        padding: "36px 20px",
                         textAlign: "center",
                         background: "#F9FAFB",
                         borderRadius: 14,
@@ -561,11 +651,35 @@ export default function TaskWorkspacePage() {
                         color: "#6B7280",
                       }}
                     >
-                      <p style={{ margin: 0, fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>
-                        No external attachment files uploaded. All instructions are detailed in the description above.
+                      <span style={{ fontSize: 32, display: "block", marginBottom: 8 }}>📭</span>
+                      <p style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#1A0A00", fontFamily: "'Syne', sans-serif", fontSize: 15 }}>
+                        No files or photos attached to this post
                       </p>
+                      <p style={{ margin: "0 0 16px 0", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#6B7280" }}>
+                        All instructions are written in the description. You can also chat directly with the client to request files.
+                      </p>
+                      <button
+                        onClick={handleOpenChat}
+                        disabled={chatLoading}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "10px 20px",
+                          background: "#3B82F6",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 10,
+                          fontWeight: 700,
+                          fontSize: 13,
+                          fontFamily: "'Syne', sans-serif",
+                          cursor: "pointer",
+                        }}
+                      >
+                        💬 Chat with Client to Request Files
+                      </button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </>
             )}
@@ -851,7 +965,67 @@ export default function TaskWorkspacePage() {
         </div>
       </div>
 
-      {/* Document Preview Modal */}
+      {/* Full-Screen Image Preview Modal */}
+      {previewImage && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)" }} onClick={() => setPreviewImage(null)} />
+          
+          <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ width: "100%", display: "flex", justifyContent: "flex-end", gap: 12, marginBottom: 12 }}>
+              <a
+                href={previewImage}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                style={{
+                  padding: "8px 18px",
+                  background: "#E8521A",
+                  color: "#fff",
+                  textDecoration: "none",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Download Original ⬇
+              </a>
+              <button
+                onClick={() => setPreviewImage(null)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.2)",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <img
+              src={previewImage}
+              alt="Full Preview"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "80vh",
+                objectFit: "contain",
+                borderRadius: 16,
+                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Document Live Preview Modal */}
       {previewDoc && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }} onClick={() => setPreviewDoc(null)} />
