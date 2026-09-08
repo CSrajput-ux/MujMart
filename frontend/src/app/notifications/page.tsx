@@ -136,7 +136,7 @@ export default function NotificationsPage() {
                 );
 
                 return isAccepted ? (
-                  <a key={notif.id} href={`/listing/${notif.relatedId}`} style={{ textDecoration: "none" }} onClick={() => !notif.isRead && handleMarkRead(notif.id)}>
+                  <a key={notif.id} href={`/task/${notif.relatedId}`} style={{ textDecoration: "none" }} onClick={() => !notif.isRead && handleMarkRead(notif.id)}>
                     {NotificationContent}
                   </a>
                 ) : NotificationContent;

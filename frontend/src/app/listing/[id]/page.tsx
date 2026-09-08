@@ -289,9 +289,34 @@ export default function ListingDetailPage() {
               </div>
 
               {listing.type === 'query' ? (
-                <button onClick={handleRequestAccess} disabled={requestSent || requestLoading} style={{ width: "100%", padding: "14px", background: requestSent ? "#10B981" : "#3B82F6", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: requestSent || requestLoading ? "not-allowed" : "pointer", transition: "0.2s" }}>
-                  {requestLoading ? "Sending..." : requestSent ? "Application Sent ✓" : "Apply for Task"}
-                </button>
+                listing.isAuthorized ? (
+                  <button
+                    onClick={() => router.push(`/task/${listing.id}`)}
+                    style={{
+                      width: "100%",
+                      padding: "14px",
+                      background: "#16A34A",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 50,
+                      fontWeight: 700,
+                      fontFamily: "'Syne', sans-serif",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      boxShadow: "0 4px 14px rgba(22, 163, 74, 0.3)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    🚀 Open Task Workspace
+                  </button>
+                ) : (
+                  <button onClick={handleRequestAccess} disabled={requestSent || requestLoading} style={{ width: "100%", padding: "14px", background: requestSent ? "#10B981" : "#3B82F6", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: requestSent || requestLoading ? "not-allowed" : "pointer", transition: "0.2s" }}>
+                    {requestLoading ? "Sending..." : requestSent ? "Application Sent ✓" : "Apply for Task"}
+                  </button>
+                )
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <button onClick={handleBuyNow} style={{ width: "100%", padding: "14px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FF6B35")} onMouseLeave={(e) => (e.currentTarget.style.background = "#E8521A")}>
