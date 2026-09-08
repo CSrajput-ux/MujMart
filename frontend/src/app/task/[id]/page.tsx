@@ -6,6 +6,25 @@ import Navbar from "@/components/marketplace/Navbar";
 import { useAuth } from "@/lib/AuthContext";
 import { listingsApi, threadsApi, type Listing } from "@/lib/api";
 
+const getFullUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
+
+const getFilename = (url: string, index: number, defaultType: string = "File") => {
+  try {
+    const cleanUrl = url.split("?")[0];
+    const parts = cleanUrl.split("/");
+    const last = parts[parts.length - 1];
+    if (last && last.includes(".")) {
+      return decodeURIComponent(last);
+    }
+  } catch (e) {}
+  return `${defaultType} ${index + 1}`;
+};
+
 export default function TaskWorkspacePage() {
   const params = useParams();
   const router = useRouter();
@@ -126,11 +145,40 @@ export default function TaskWorkspacePage() {
     );
   }
 
-  const advanceAmount = Math.round(listing.price * 0.3);
-  const remainingAmount = listing.price - advanceAmount;
+  let rawImages: string[] = [];
+  if (Array.isArray(listing.images)) {
+    rawImages = listing.images;
+  } else if (typeof listing.images === "string" && (listing.images as string).trim()) {
+    try {
+      const parsed = JSON.parse(listing.images);
+      rawImages = Array.isArray(parsed) ? parsed : [listing.images];
+    } catch {
+      rawImages = [listing.images];
+    }
+  }
 
-  const validImages = (listing.images || []).filter((img) => img && typeof img === "string" && img.trim() !== "");
-  const validAttachments = (listing.attachments || []).filter((doc) => doc && typeof doc === "string" && doc.trim() !== "");
+  let rawAttachments: string[] = [];
+  if (Array.isArray(listing.attachments)) {
+    rawAttachments = listing.attachments;
+  } else if (typeof listing.attachments === "string" && (listing.attachments as string).trim()) {
+    try {
+      const parsed = JSON.parse(listing.attachments);
+      rawAttachments = Array.isArray(parsed) ? parsed : [listing.attachments];
+    } catch {
+      rawAttachments = [listing.attachments];
+    }
+  }
+
+  const validImages = rawImages
+    .filter((img) => img && typeof img === "string" && img.trim() !== "")
+    .map((img) => getFullUrl(img));
+
+  const validAttachments = rawAttachments
+    .filter((doc) => doc && typeof doc === "string" && doc.trim() !== "")
+    .map((doc) => getFullUrl(doc));
+
+  const advanceAmount = Math.round((listing.price || 0) * 0.3);
+  const remainingAmount = (listing.price || 0) - advanceAmount;
   const totalFilesCount = validImages.length + validAttachments.length;
 
   return (
@@ -204,7 +252,7 @@ export default function TaskWorkspacePage() {
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
-                🔓 PROJECT & ATTACHMENTS UNLOCKED
+                🔓 PROJECT & ALL FILES UNLOCKED
               </span>
 
               <span
@@ -331,7 +379,7 @@ export default function TaskWorkspacePage() {
               }}
             >
               {[
-                { id: "details", label: "📋 Assignment Specification & Files" },
+                { id: "details", label: "📋 Assignment Specification & Attached Files" },
                 { id: "deliverables", label: "🚀 Submit Deliverables & Work" },
               ].map((tab) => (
                 <button
@@ -357,7 +405,7 @@ export default function TaskWorkspacePage() {
               ))}
             </div>
 
-            {/* TAB 1: Complete Unlocked Details, Photos & Files */}
+            {/* TAB 1: Complete Unlocked Details, Scope & Client Uploaded Files */}
             {activeTab === "details" && (
               <>
                 {/* Milestone Progress Bar */}
@@ -437,7 +485,7 @@ export default function TaskWorkspacePage() {
                   </div>
                 </div>
 
-                {/* Complete Unlocked Description */}
+                {/* Complete Unlocked Description & ALL Client Uploaded Files Embedded */}
                 <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                     <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
@@ -457,6 +505,7 @@ export default function TaskWorkspacePage() {
                     </span>
                   </div>
 
+                  {/* Text Problem Statement */}
                   <div
                     style={{
                       fontFamily: "'DM Sans', sans-serif",
@@ -468,218 +517,221 @@ export default function TaskWorkspacePage() {
                       padding: "20px",
                       borderRadius: 14,
                       border: "1px solid #F0DDD4",
+                      marginBottom: 24,
                     }}
                   >
                     {listing.description}
                   </div>
-                </div>
 
-                {/* Unlocked Photos & Screenshots Section */}
-                {validImages.length > 0 && (
-                  <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                      <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
-                        📸 Client Photos & Question Screenshots ({validImages.length})
-                      </h2>
-                      <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
-                        Click any image to view in full resolution
-                      </span>
-                    </div>
+                  {/* Embedded Client Uploaded Photos & Screenshots inside the Scope Card */}
+                  {validImages.length > 0 && (
+                    <div style={{ marginBottom: 24, paddingTop: 16, borderTop: "1px dashed #F0DDD4" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 15, color: "#1A0A00", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>📸</span> Client Photos & Question Screenshots ({validImages.length})
+                        </h3>
+                        <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                          Click to preview / zoom
+                        </span>
+                      </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                        gap: 16,
-                      }}
-                    >
-                      {validImages.map((imgUrl, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => setPreviewImage(imgUrl)}
-                          style={{
-                            position: "relative",
-                            aspectRatio: "4/3",
-                            borderRadius: 14,
-                            overflow: "hidden",
-                            border: "1.5px solid #F0DDD4",
-                            cursor: "pointer",
-                            background: "#F9FAFB",
-                            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-4px)";
-                            e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)";
-                            e.currentTarget.style.borderColor = "#E8521A";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow = "none";
-                            e.currentTarget.style.borderColor = "#F0DDD4";
-                          }}
-                        >
-                          <img
-                            src={imgUrl}
-                            alt={`Assignment photo ${idx + 1}`}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)",
-                              display: "flex",
-                              alignItems: "flex-end",
-                              padding: "10px",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#fff",
-                                fontSize: 12,
-                                fontWeight: 700,
-                                fontFamily: "'DM Sans', sans-serif",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                              }}
-                            >
-                              🔍 Photo {idx + 1}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Unlocked Documents & Files Section */}
-                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #F0DDD4", padding: "28px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, color: "#1A0A00", margin: 0 }}>
-                      📁 Assignment Documents & Files ({validAttachments.length})
-                    </h2>
-                    <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
-                      PDF, DOC, code & reference sheets
-                    </span>
-                  </div>
-
-                  {validAttachments.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {validAttachments.map((doc, idx) => {
-                        const isPdf = doc.toLowerCase().endsWith(".pdf");
-                        const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(doc);
-
-                        return (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                          gap: 14,
+                        }}
+                      >
+                        {validImages.map((imgUrl, idx) => (
                           <div
                             key={idx}
+                            onClick={() => setPreviewImage(imgUrl)}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "14px 18px",
+                              position: "relative",
+                              aspectRatio: "4/3",
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              border: "1.5px solid #F0DDD4",
+                              cursor: "pointer",
                               background: "#F9FAFB",
-                              borderRadius: 14,
-                              border: "1px solid #F0DDD4",
-                              transition: "all 0.2s",
+                              transition: "all 0.2s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = "translateY(-3px)";
+                              e.currentTarget.style.boxShadow = "0 8px 18px rgba(0,0,0,0.1)";
+                              e.currentTarget.style.borderColor = "#E8521A";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "none";
+                              e.currentTarget.style.borderColor = "#F0DDD4";
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                              <span style={{ fontSize: 26 }}>{isPdf ? "📕" : isImage ? "🖼️" : "📄"}</span>
-                              <div>
-                                <p style={{ margin: "0 0 2px 0", fontWeight: 700, fontSize: 14, color: "#1A0A00", fontFamily: "'DM Sans', sans-serif" }}>
-                                  Attachment {idx + 1} {isPdf ? "(PDF Document)" : isImage ? "(Image File)" : "(Project File)"}
-                                </p>
-                                <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
-                                  Verified Client File
-                                </span>
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button
-                                onClick={() => isImage ? setPreviewImage(doc) : setPreviewDoc(doc)}
+                            <img
+                              src={imgUrl}
+                              alt={`Client Photo ${idx + 1}`}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+                                display: "flex",
+                                alignItems: "flex-end",
+                                padding: "8px 10px",
+                              }}
+                            >
+                              <span
                                 style={{
-                                  padding: "8px 14px",
-                                  background: "#fff",
-                                  border: "1.5px solid #F0DDD4",
-                                  borderRadius: 8,
-                                  color: "#1A0A00",
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  fontFamily: "'DM Sans', sans-serif",
-                                  cursor: "pointer",
-                                  transition: "all 0.2s",
-                                }}
-                              >
-                                Live Preview
-                              </button>
-                              <a
-                                href={doc}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  padding: "8px 16px",
-                                  background: "#E8521A",
                                   color: "#fff",
-                                  borderRadius: 8,
-                                  fontSize: 13,
+                                  fontSize: 11,
                                   fontWeight: 700,
                                   fontFamily: "'DM Sans', sans-serif",
-                                  textDecoration: "none",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
                                 }}
                               >
-                                Download ⬇
-                              </a>
+                                🔍 Photo {idx + 1}
+                              </span>
                             </div>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
-                  ) : validImages.length === 0 ? (
+                  )}
+
+                  {/* Embedded Client Uploaded Documents & Attachments inside the Scope Card */}
+                  {validAttachments.length > 0 && (
+                    <div style={{ paddingTop: 16, borderTop: "1px dashed #F0DDD4" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 15, color: "#1A0A00", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>📁</span> Client Uploaded Files & Documents ({validAttachments.length})
+                        </h3>
+                        <span style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                          Download or live preview
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {validAttachments.map((doc, idx) => {
+                          const filename = getFilename(doc, idx, "Assignment Document");
+                          const isPdf = doc.toLowerCase().endsWith(".pdf");
+                          const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(doc);
+
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "12px 16px",
+                                background: "#FDF8F5",
+                                borderRadius: 12,
+                                border: "1.5px solid #F0DDD4",
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <span style={{ fontSize: 24 }}>{isPdf ? "📕" : isImage ? "🖼️" : "📄"}</span>
+                                <div>
+                                  <p style={{ margin: "0 0 2px 0", fontWeight: 700, fontSize: 14, color: "#1A0A00", fontFamily: "'DM Sans', sans-serif" }}>
+                                    {filename}
+                                  </p>
+                                  <span style={{ fontSize: 11, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>
+                                    Uploaded by client during listing creation
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button
+                                  onClick={() => isImage ? setPreviewImage(doc) : setPreviewDoc(doc)}
+                                  style={{
+                                    padding: "6px 14px",
+                                    background: "#fff",
+                                    border: "1px solid #F0DDD4",
+                                    borderRadius: 8,
+                                    color: "#1A0A00",
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    fontFamily: "'DM Sans', sans-serif",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Live Preview
+                                </button>
+                                <a
+                                  href={doc}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    padding: "6px 14px",
+                                    background: "#E8521A",
+                                    color: "#fff",
+                                    borderRadius: 8,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    fontFamily: "'DM Sans', sans-serif",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  Download ⬇
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty files state when neither images nor attachments were attached */}
+                  {validImages.length === 0 && validAttachments.length === 0 && (
                     <div
                       style={{
-                        padding: "36px 20px",
-                        textAlign: "center",
-                        background: "#F9FAFB",
-                        borderRadius: 14,
-                        border: "1px dashed #D1D5DB",
-                        color: "#6B7280",
+                        padding: "20px 16px",
+                        background: "#FFFBEA",
+                        borderRadius: 12,
+                        border: "1px solid #FDE68A",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 12,
                       }}
                     >
-                      <span style={{ fontSize: 32, display: "block", marginBottom: 8 }}>📭</span>
-                      <p style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#1A0A00", fontFamily: "'Syne', sans-serif", fontSize: 15 }}>
-                        No files or photos attached to this post
-                      </p>
-                      <p style={{ margin: "0 0 16px 0", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#6B7280" }}>
-                        All instructions are written in the description. You can also chat directly with the client to request files.
-                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>💡</span>
+                        <p style={{ margin: 0, fontSize: 13, color: "#92400E", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                          No files were attached by the client when posting. You can ask them directly in chat!
+                        </p>
+                      </div>
                       <button
                         onClick={handleOpenChat}
                         disabled={chatLoading}
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "10px 20px",
+                          padding: "6px 14px",
                           background: "#3B82F6",
                           color: "#fff",
                           border: "none",
-                          borderRadius: 10,
+                          borderRadius: 8,
+                          fontSize: 12,
                           fontWeight: 700,
-                          fontSize: 13,
-                          fontFamily: "'Syne', sans-serif",
+                          fontFamily: "'DM Sans', sans-serif",
                           cursor: "pointer",
                         }}
                       >
-                        💬 Chat with Client to Request Files
+                        💬 Request Files in Chat
                       </button>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </>
             )}

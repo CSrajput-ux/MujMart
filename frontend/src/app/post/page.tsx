@@ -155,7 +155,12 @@ export default function PostListingPage() {
 
           {currentStep === 1 && (
             <div>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", margin: "0 0 16px 0" }}>Add Photos {listingType === 'query' && "& Files"}</h2>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: "#1A0A00", margin: "0 0 6px 0" }}>
+                Add Photos & Documents
+              </h2>
+              <p style={{ fontSize: 13, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", margin: "0 0 16px 0" }}>
+                Upload clear photos, screenshots of questions, or attach PDFs, DOCs, and ZIP files.
+              </p>
               
               <input 
                 type="file" 
@@ -171,59 +176,74 @@ export default function PostListingPage() {
                 ref={docInputRef} 
                 onChange={handleDocUpload} 
                 multiple 
-                accept=".pdf,.ppt,.pptx,.doc,.docx" 
+                accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.zip,.rar,.tar,.gz,.csv,.xlsx,.xls,.py,.cpp,.c,.java,.json" 
                 style={{ display: "none" }} 
               />
               
-              {images.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12, marginBottom: 20 }}>
-                  {images.map((img, idx) => (
-                    <div key={idx} style={{ position: "relative", paddingTop: "100%", borderRadius: 12, overflow: "hidden", border: "1px solid #F0DDD4" }}>
-                      <img src={img} alt={`Upload ${idx}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                      <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 12 }}>✕</button>
-                      {idx === 0 && <span style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontFamily: "'DM Sans', sans-serif" }}>Cover</span>}
-                    </div>
-                  ))}
-                  {images.length < 8 && (
-                    <div onClick={() => fileInputRef.current?.click()} style={{ position: "relative", paddingTop: "100%", borderRadius: 12, border: "2px dashed #F0DDD4", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB" }}>
-                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#9CA3AF" }}>+</div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {images.length === 0 && (
-                <div onClick={() => fileInputRef.current?.click()} style={{ border: "2px dashed #F0DDD4", borderRadius: 14, padding: 48, textAlign: "center", cursor: uploading ? "wait" : "pointer", transition: "border-color 0.2s", background: uploading ? "#F9FAFB" : "#fff" }}>
-                  <div style={{ width: 64, height: 64, margin: "0 auto 16px", background: "#FFF0EA", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 28 }}>{uploading ? "⏳" : "📷"}</span>
+              {/* Photo Upload Section */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#1A0A00", marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+                  📷 Photos & Screenshots (up to 8)
+                </label>
+                {images.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12, marginBottom: 12 }}>
+                    {images.map((img, idx) => (
+                      <div key={idx} style={{ position: "relative", paddingTop: "100%", borderRadius: 12, overflow: "hidden", border: "1px solid #F0DDD4" }}>
+                        <img src={img} alt={`Upload ${idx}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 12 }}>✕</button>
+                        {idx === 0 && <span style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontFamily: "'DM Sans', sans-serif" }}>Cover</span>}
+                      </div>
+                    ))}
+                    {images.length < 8 && (
+                      <div onClick={() => fileInputRef.current?.click()} style={{ position: "relative", paddingTop: "100%", borderRadius: 12, border: "2px dashed #F0DDD4", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB" }}>
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#9CA3AF" }}>+</div>
+                      </div>
+                    )}
                   </div>
-                  <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 14, color: "#1A0A00", margin: "0 0 4px 0" }}>{uploading ? "Uploading..." : "Click to upload photos"}</p>
-                  <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>Up to 8 photos · 5MB max each · PNG, JPG</p>
-                </div>
-              )}
+                )}
 
-              {listingType === 'query' && (
-                <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid #F0DDD4" }}>
-                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 14, color: "#1A0A00", margin: "0 0 12px 0" }}>Attach Documents (PDF, PPT, DOC)</h3>
-                  {attachments.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                      {attachments.map((doc, idx) => (
-                        <div key={idx} style={{ padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <a href={doc} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#3B82F6", textDecoration: "none" }}>Document {idx + 1}</a>
-                          <button onClick={() => removeAttachment(idx)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Remove</button>
-                        </div>
-                      ))}
+                {images.length === 0 && (
+                  <div onClick={() => fileInputRef.current?.click()} style={{ border: "2px dashed #F0DDD4", borderRadius: 14, padding: 32, textAlign: "center", cursor: uploading ? "wait" : "pointer", transition: "border-color 0.2s", background: uploading ? "#F9FAFB" : "#fff" }}>
+                    <div style={{ width: 52, height: 52, margin: "0 auto 12px", background: "#FFF0EA", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 24 }}>{uploading ? "⏳" : "📷"}</span>
                     </div>
-                  )}
-                  {attachments.length < 5 && (
-                    <button onClick={() => docInputRef.current?.click()} disabled={uploading} style={{ padding: "10px 16px", background: "#fff", border: "1.5px dashed #F0DDD4", borderRadius: 8, color: "#E8521A", fontSize: 13, fontWeight: 600, cursor: uploading ? "wait" : "pointer", width: "100%" }}>
-                      + Upload File
-                    </button>
-                  )}
-                </div>
-              )}
+                    <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 14, color: "#1A0A00", margin: "0 0 4px 0" }}>{uploading ? "Uploading..." : "Click to upload photos"}</p>
+                    <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", margin: 0 }}>Up to 8 photos · 5MB max each · PNG, JPG</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Documents & Files Upload Section */}
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #F0DDD4" }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#1A0A00", marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+                  📁 Assignment Files & Documents (PDF, DOCX, ZIP, PPT, Code)
+                </label>
+                {attachments.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    {attachments.map((doc, idx) => {
+                      const cleanName = doc.split("/").pop()?.split("?")[0] || `Document ${idx + 1}`;
+                      return (
+                        <div key={idx} style={{ padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+                            <span>📄</span>
+                            <a href={doc} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#3B82F6", textDecoration: "none", fontWeight: 600, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                              {decodeURIComponent(cleanName)}
+                            </a>
+                          </div>
+                          <button onClick={() => removeAttachment(idx)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Remove</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {attachments.length < 5 && (
+                  <button onClick={() => docInputRef.current?.click()} disabled={uploading} style={{ padding: "11px 16px", background: "#FFF0EA", border: "1.5px dashed #E8521A", borderRadius: 10, color: "#E8521A", fontSize: 13, fontWeight: 700, cursor: uploading ? "wait" : "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "'Syne', sans-serif" }}>
+                    <span>📎</span> + Upload File / Document (PDF, DOC, ZIP)
+                  </button>
+                )}
+              </div>
               
-              <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", marginTop: 12 }}>📌 First photo will be the thumbnail</p>
+              <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", marginTop: 14 }}>📌 Uploaded files will be securely unlocked for the assigned student once hired.</p>
             </div>
           )}
 
