@@ -82,7 +82,7 @@ export default function AdminListingsPage() {
           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
             {!isRemoved && (
               <button
-                onClick={() => handleUpdateStatus(row.id, "removed")}
+                onClick={() => handleUpdateStatus(row.id as string, "removed")}
                 style={{
                   padding: "4px 12px",
                   fontSize: 11,
@@ -101,7 +101,7 @@ export default function AdminListingsPage() {
             )}
             {isRemoved && (
               <button
-                onClick={() => handleUpdateStatus(row.id, "active")}
+                onClick={() => handleUpdateStatus(row.id as string, "active")}
                 style={{
                   padding: "4px 12px",
                   fontSize: 11,

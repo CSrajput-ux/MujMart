@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
           return (
           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
             <button
-              onClick={() => handleBan(row.id, isBanned)}
+              onClick={() => handleBan(row.id as string, isBanned)}
               style={{
                 padding: "4px 12px",
                 fontSize: 11,

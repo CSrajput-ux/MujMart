@@ -203,7 +203,7 @@ export const adminApi = {
   stats: () =>
     apiFetch<{ stats: AdminStats }>('/api/admin/stats'),
 
-  users: (params?: { q?: string; role?: string; banned?: boolean; page?: number }) => {
+  users: (params?: { q?: string; role?: string; banned?: boolean; page?: number; limit?: number }) => {
     const p = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) p.set(k, String(v)); });
     return apiFetch<{ users: User[]; pagination: Pagination }>(`/api/admin/users?${p}`);
@@ -215,7 +215,7 @@ export const adminApi = {
       body: JSON.stringify({ ban }),
     }),
 
-  listings: (params?: { status?: string; q?: string; page?: number }) => {
+  listings: (params?: { status?: string; q?: string; page?: number; limit?: number; type?: string }) => {
     const p = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) p.set(k, String(v)); });
     return apiFetch<{ listings: Listing[]; pagination: Pagination }>(`/api/admin/listings?${p}`);
@@ -227,7 +227,7 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     }),
 
-  disputes: (params?: { status?: string; page?: number }) => {
+  disputes: (params?: { status?: string; page?: number; limit?: number }) => {
     const p = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) p.set(k, String(v)); });
     return apiFetch<{ disputes: Dispute[]; pagination: Pagination }>(`/api/admin/disputes?${p}`);
