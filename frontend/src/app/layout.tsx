@@ -3,6 +3,7 @@ import { Syne, DM_Sans } from "next/font/google";
 import { DemoProvider } from "@/lib/DemoContext";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/AuthContext";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const syne = Syne({
@@ -56,6 +57,7 @@ export default function RootLayout({
             <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </DemoProvider>
+        <Analytics />
       </body>
     </html>
   );
