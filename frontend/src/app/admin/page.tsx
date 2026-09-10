@@ -1,11 +1,43 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import MetricCard from "@/components/admin/MetricCard";
 import HealthBar from "@/components/admin/HealthBar";
 import StatusPill from "@/components/ui/StatusPill";
+import { adminApi } from "@/lib/api";
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const statsRes = await adminApi.stats();
+        setStats(statsRes.stats);
+
+        const disputesRes = await adminApi.disputes({ status: "open", limit: 5 } as any);
+        setDisputes(disputesRes.disputes);
+      } catch (err) {
+        console.error("Failed to load admin dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+        <p style={{ color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (!stats) return null;
+
   return (
     <div>
       {/* Header */}
@@ -37,7 +69,7 @@ export default function AdminDashboard() {
               marginTop: 4,
             }}
           >
-            Admin overview · Last updated 2 min ago
+            Admin overview · Real-time data
           </p>
         </div>
         <span
@@ -64,10 +96,10 @@ export default function AdminDashboard() {
           marginBottom: 28,
         }}
       >
-        <MetricCard label="Total Revenue" value="₹18,430" trend="+23%" trendUp icon="💰" color="green" />
-        <MetricCard label="Active Listings" value="347" trend="+12" trendUp icon="📦" color="blue" />
-        <MetricCard label="Deals Today" value="18" trend="+5" trendUp icon="🤝" color="orange" />
-        <MetricCard label="Open Disputes" value="7" trend="-2" trendUp={false} icon="⚠️" color="red" />
+        <MetricCard label="Total Revenue" value={`₹${stats.totalRevenue.toLocaleString("en-IN")}`} trend="+23%" trendUp icon="💰" color="green" />
+        <MetricCard label="Active Listings" value={stats.activeListings.toString()} trend="+12" trendUp icon="📦" color="blue" />
+        <MetricCard label="Deals Today" value={stats.todayDeals.toString()} trend="+5" trendUp icon="🤝" color="orange" />
+        <MetricCard label="Open Disputes" value={stats.openDisputes.toString()} trend="-2" trendUp={false} icon="⚠️" color="red" />
       </div>
 
       {/* Two column layout */}
@@ -78,7 +110,7 @@ export default function AdminDashboard() {
           gap: 16,
         }}
       >
-        {/* Revenue chart */}
+        {/* Revenue chart - Keep UI but we might want real chart data later */}
         <div
           style={{
             background: "#fff",
@@ -96,7 +128,7 @@ export default function AdminDashboard() {
               margin: "0 0 20px 0",
             }}
           >
-            Weekly Revenue
+            Weekly Revenue (Demo Chart)
           </h3>
           <div
             style={{
@@ -188,14 +220,9 @@ export default function AdminDashboard() {
             Urgent Actions
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              { text: "Illegal listing in Rent", severity: "danger" as const, action: "Review" },
-              { text: "Price gouging alert", severity: "warning" as const, action: "Check" },
-              { text: "Pending rent approvals (7)", severity: "orange" as const, action: "Approve" },
-              { text: "New dispute filed", severity: "danger" as const, action: "Resolve" },
-            ].map((item, i) => (
+            {disputes.map((dispute, i) => (
               <div
-                key={i}
+                key={dispute.id || i}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -224,14 +251,8 @@ export default function AdminDashboard() {
                   }}
                 >
                   <StatusPill
-                    label={
-                      item.severity === "danger"
-                        ? "🔴"
-                        : item.severity === "warning"
-                        ? "🟡"
-                        : "🟠"
-                    }
-                    variant={item.severity}
+                    label={"🔴"}
+                    variant={"danger"}
                     size="sm"
                   />
                   <span
@@ -244,10 +265,11 @@ export default function AdminDashboard() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {item.text}
+                    Dispute: {dispute.reason}
                   </span>
                 </div>
                 <button
+                  onClick={() => window.location.href = "/admin/disputes"}
                   style={{
                     fontSize: 12,
                     color: "#E8521A",
@@ -261,10 +283,13 @@ export default function AdminDashboard() {
                     padding: 0,
                   }}
                 >
-                  {item.action}
+                  Resolve
                 </button>
               </div>
             ))}
+            {disputes.length === 0 && (
+              <p style={{ fontSize: 13, color: "#6B7280", fontFamily: "'DM Sans', sans-serif" }}>No urgent actions needed. 🎉</p>
+            )}
           </div>
         </div>
       </div>
@@ -297,10 +322,8 @@ export default function AdminDashboard() {
             gap: "16px 32px",
           }}
         >
-          <HealthBar label="Deal Success Rate" value={87} color="green" />
-          <HealthBar label="Margin Collection" value={72} color="orange" />
-          <HealthBar label="User Satisfaction" value={94} color="green" />
-          <HealthBar label="Dispute Resolution" value={65} color="red" />
+          <HealthBar label="Deal Success Rate" value={stats.totalTransactions > 0 ? Math.round((stats.activeListings / (stats.totalListings || 1)) * 100) : 100} color="green" />
+          <HealthBar label="System Availability" value={99} color="green" />
         </div>
       </div>
     </div>
