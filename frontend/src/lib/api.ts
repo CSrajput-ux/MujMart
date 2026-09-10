@@ -347,8 +347,6 @@ export interface Transaction {
   status: 'pending_payment' | 'verifying_payment' | 'escrow' | 'ready_for_payout' | 'completed' | 'refunded';
   utrNumber?: string;
   paymentScreenshotUrl?: string;
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
   createdAt: string;
   listing?: Partial<Listing>;
   buyer?: Partial<User>;
