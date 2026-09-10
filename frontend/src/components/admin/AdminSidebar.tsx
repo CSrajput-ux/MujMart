@@ -1,24 +1,48 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDemo } from "@/lib/DemoContext";
+import { adminApi } from "@/lib/api";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊", badge: null },
-  { href: "/admin/escrow", label: "Escrow Payments", icon: "🛡️", badge: "New" },
-  { href: "/admin/listings", label: "Listings", icon: "📦", badge: "347" },
-  { href: "/admin/users", label: "Users", icon: "👥", badge: null },
-  { href: "/admin/disputes", label: "Disputes", icon: "⚠️", badge: "4" },
-  { href: "/admin/rent", label: "Rent Approvals", icon: "🏠", badge: "7" },
-  { href: "/admin/margins", label: "Margins", icon: "💰", badge: null },
-  { href: "/admin/settings", label: "Settings", icon: "⚙️", badge: null },
+const BASE_NAV_ITEMS = [
+  { id: "dashboard", href: "/admin", label: "Dashboard", icon: "📊" },
+  { id: "escrow", href: "/admin/escrow", label: "Escrow Payments", icon: "🛡️" },
+  { id: "listings", href: "/admin/listings", label: "Listings", icon: "📦" },
+  { id: "users", href: "/admin/users", label: "Users", icon: "👥" },
+  { id: "disputes", href: "/admin/disputes", label: "Disputes", icon: "⚠️" },
+  { id: "rent", href: "/admin/rent", label: "Rent Approvals", icon: "🏠" },
+  { id: "margins", href: "/admin/margins", label: "Margins", icon: "💰" },
+  { id: "settings", href: "/admin/settings", label: "Settings", icon: "⚙️" },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { isDemo, demoUser, exitDemoMode } = useDemo();
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const res = await adminApi.stats();
+        setStats(res.stats);
+      } catch (e) {
+        console.error("Failed to load sidebar stats");
+      }
+    }
+    loadStats();
+  }, [pathname]); // Refresh when navigating
+
+  const navItems = BASE_NAV_ITEMS.map((item) => {
+    let badge = null;
+    if (stats) {
+      if (item.id === "listings" && stats.activeListings > 0) badge = stats.activeListings.toString();
+      if (item.id === "disputes" && stats.openDisputes > 0) badge = stats.openDisputes.toString();
+      // For rent approvals, we don't have a specific stat returned yet, so leave null
+    }
+    return { ...item, badge };
+  });
 
   return (
     <aside
