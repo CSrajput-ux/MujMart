@@ -93,10 +93,11 @@ model Transaction {
   id             String   @id @default(uuid())
   amount         Float
   platformMargin Float    // 5% of amount
-  status         String   @default("pending_payment") // pending_payment | verifying_payment | escrow | ready_for_payout | completed | refunded
-  utrNumber      String?  // Buyer's payment reference
-  razorpayOrderId   String?
-  razorpayPaymentId String?
+  status              String   @default("pending_payment") // pending_payment | verifying_payment | escrow | ready_for_payout | completed | refunded
+  utrNumber           String?  // Buyer's UPI Transaction ID / UTR
+  paymentScreenshotUrl String? // Cloudinary URL of buyer's payment screenshot
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
   createdAt      DateTime @default(now())
 
   listingId      String

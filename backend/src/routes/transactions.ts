@@ -1,18 +1,15 @@
 import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-});
-
 const PLATFORM_MARGIN_RATE = 0.05; // 5%
+
+// Admin UPI details (set in .env or hardcoded here)
+const ADMIN_UPI_ID = process.env.ADMIN_UPI_ID || '7579958087@axl';
+const ADMIN_UPI_QR_URL = process.env.ADMIN_UPI_QR_URL || '/qr.jpeg';
 
 // Helper for admin check
 const requireAdmin = (req: AuthRequest, res: Response, next: Function) => {
@@ -22,7 +19,7 @@ const requireAdmin = (req: AuthRequest, res: Response, next: Function) => {
   next();
 };
 
-// POST /api/transactions/checkout — Initiate a deal
+// POST /api/transactions/checkout — Initiate a deal (UPI manual flow)
 router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { listingId, agreedPrice } = req.body;
@@ -34,6 +31,9 @@ router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response)
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
+      include: {
+        seller: { select: { id: true, alias: true } },
+      },
     });
 
     if (!listing) {
@@ -63,78 +63,134 @@ router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response)
         platformMargin,
         status: 'pending_payment',
       },
+      include: {
+        listing: { select: { id: true, title: true, type: true, images: true } },
+        buyer: { select: { id: true, alias: true } },
+        seller: { select: { id: true, alias: true } },
+      },
     });
 
-    const order = await razorpay.orders.create({
-      amount: Math.round(finalAmount * 100), // in paise
-      currency: "INR",
-      receipt: transaction.id,
+    // Return transaction + admin UPI details so buyer can pay
+    res.status(201).json({
+      transaction,
+      upiDetails: {
+        upiId: ADMIN_UPI_ID,
+        qrUrl: ADMIN_UPI_QR_URL,
+        amount: finalAmount,
+        note: `MujMart-${transaction.id.slice(0, 8)}`,
+      },
     });
-
-    const updatedTransaction = await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { razorpayOrderId: order.id },
-    });
-
-    // Listing status will be updated to 'sold' upon successful payment verification.
-
-    res.status(201).json({ transaction: updatedTransaction });
   } catch (error) {
     console.error('Checkout error:', error);
     res.status(500).json({ error: 'Failed to initiate checkout' });
   }
 });
 
-// POST /api/transactions/:id/verify-razorpay — Buyer submits Razorpay payment signature
-router.post('/:id/verify-razorpay', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+// POST /api/transactions/:id/submit-upi-payment
+// Buyer submits: screenshot URL + UTR/Transaction ID
+router.post('/:id/submit-upi-payment', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { utrNumber, paymentScreenshotUrl } = req.body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      res.status(400).json({ error: 'Missing payment details' });
+    if (!utrNumber || !paymentScreenshotUrl) {
+      res.status(400).json({ error: 'Transaction ID (UTR) and payment screenshot are required' });
       return;
     }
 
-    const transaction = await prisma.transaction.findUnique({ where: { id } });
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        listing: { select: { id: true, title: true, type: true, images: true, category: true, condition: true, price: true } },
+        buyer: { select: { id: true, alias: true } },
+        seller: { select: { id: true, alias: true } },
+      },
+    });
+
     if (!transaction || transaction.buyerId !== req.user!.id) {
       res.status(404).json({ error: 'Transaction not found or unauthorized' });
       return;
     }
 
     if (transaction.status !== 'pending_payment') {
-      res.status(400).json({ error: 'Transaction is not awaiting payment' });
+      res.status(400).json({ error: 'Payment already submitted or transaction is not awaiting payment' });
       return;
     }
 
-    // Verify signature
-    const text = `${razorpay_order_id}|${razorpay_payment_id}`;
-    const generated_signature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
-      .update(text)
-      .digest('hex');
+    const updated = await prisma.transaction.update({
+      where: { id },
+      data: {
+        utrNumber,
+        paymentScreenshotUrl,
+        status: 'verifying_payment',
+      },
+      include: {
+        listing: { select: { id: true, title: true, type: true, images: true, category: true, condition: true, price: true } },
+        buyer: { select: { id: true, alias: true } },
+        seller: { select: { id: true, alias: true } },
+      },
+    });
 
-    if (generated_signature === razorpay_signature) {
-      const updated = await prisma.transaction.update({
-        where: { id },
-        data: { 
-          status: 'escrow',
-          razorpayPaymentId: razorpay_payment_id 
+    // Notify admin about new payment to verify
+    const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          type: 'PAYMENT_SUBMITTED',
+          content: `Payment submitted by ${req.user!.alias} for "${transaction.listing?.title}" — UTR: ${utrNumber}. Please verify the screenshot and approve.`,
+          relatedId: id,
         },
       });
-
-      // Mark listing as sold now that payment is secured
-      await prisma.listing.update({
-        where: { id: transaction.listingId },
-        data: { status: 'sold' },
-      });
-
-      res.json({ transaction: updated });
-    } else {
-      res.status(400).json({ error: 'Invalid payment signature' });
     }
+
+    res.json({ transaction: updated, message: 'Payment submitted for verification. Admin will verify within 24 hours.' });
   } catch (error) {
-    console.error('Verify razorpay error:', error);
+    console.error('Submit UPI payment error:', error);
+    res.status(500).json({ error: 'Failed to submit payment' });
+  }
+});
+
+// POST /api/transactions/:id/verify-payment — Admin verifies manual UPI payment
+router.post('/:id/verify-payment', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    const transaction = await prisma.transaction.findUnique({ where: { id } });
+    if (!transaction) {
+      res.status(404).json({ error: 'Transaction not found' });
+      return;
+    }
+
+    if (transaction.status !== 'verifying_payment') {
+      res.status(400).json({ error: 'Transaction is not pending verification' });
+      return;
+    }
+
+    const updated = await prisma.transaction.update({
+      where: { id },
+      data: { status: 'escrow' },
+    });
+
+    // Mark listing as sold
+    await prisma.listing.update({
+      where: { id: transaction.listingId },
+      data: { status: 'sold' },
+    });
+
+    // Notify the buyer that payment is confirmed
+    await prisma.notification.create({
+      data: {
+        userId: transaction.buyerId,
+        type: 'PAYMENT_VERIFIED',
+        content: `Your payment has been verified! ✅ Your order is now secured. We will deliver the item shortly.`,
+        relatedId: id,
+      },
+    });
+
+    res.json({ transaction: updated, message: 'Payment verified successfully. Listing marked as sold.' });
+  } catch (error) {
+    console.error('Verify payment error:', error);
     res.status(500).json({ error: 'Failed to verify payment' });
   }
 });
@@ -204,7 +260,7 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response): Promise
     let where: any = {};
     
     if (req.user!.role === 'admin') {
-      // Admin sees everything if role is not specified
+      // Admin sees everything
       if (status) where.status = status;
     } else {
       // Normal user sees their own
@@ -219,7 +275,7 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response): Promise
     const transactions = await prisma.transaction.findMany({
       where,
       include: {
-        listing: { select: { id: true, title: true, type: true, images: true } },
+        listing: { select: { id: true, title: true, type: true, images: true, category: true, condition: true } },
         buyer: { select: { id: true, alias: true } },
         seller: { select: { id: true, alias: true, upiId: true } },
       },
@@ -237,6 +293,14 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response): Promise
     console.error('Get transactions error:', error);
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }
+});
+
+// GET /api/transactions/upi-details — returns admin UPI for payment
+router.get('/upi-details', authMiddleware, async (_req: AuthRequest, res: Response): Promise<void> => {
+  res.json({
+    upiId: ADMIN_UPI_ID,
+    qrUrl: ADMIN_UPI_QR_URL,
+  });
 });
 
 export default router;
