@@ -55,9 +55,9 @@ export default function EscrowAdminPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "verifying_payment": return "orange";
-      case "escrow": return "blue";
-      case "ready_for_payout": return "red";
-      case "completed": return "green";
+      case "escrow": return "info";
+      case "ready_for_payout": return "danger";
+      case "completed": return "success";
       default: return "default";
     }
   };

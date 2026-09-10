@@ -30,7 +30,7 @@ export default function StatusPill({
   variant = "default",
   size = "sm",
 }: StatusPillProps) {
-  const v = variantMap[variant];
+  const v = variantMap[variant] || variantMap["default"];
   return (
     <span
       style={{
