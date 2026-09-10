@@ -167,15 +167,20 @@ export const threadsApi = {
 // ────────────────────────────────────────────
 export const transactionsApi = {
   checkout: (data: { listingId: string; agreedPrice?: number }) =>
-    apiFetch<{ transaction: Transaction }>('/api/transactions/checkout', {
+    apiFetch<{ transaction: Transaction; upiDetails: UpiDetails }>('/api/transactions/checkout', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  verifyRazorpay: (id: string, data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
-    apiFetch<{ transaction: Transaction }>(`/api/transactions/${id}/verify-razorpay`, {
+  submitUpiPayment: (id: string, data: { utrNumber: string; paymentScreenshotUrl: string }) =>
+    apiFetch<{ transaction: Transaction; message: string }>(`/api/transactions/${id}/submit-upi-payment`, {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  verifyPayment: (id: string) =>
+    apiFetch<{ transaction: Transaction; message: string }>(`/api/transactions/${id}/verify-payment`, {
+      method: 'POST',
     }),
 
   confirmReceipt: (id: string) =>
@@ -186,6 +191,9 @@ export const transactionsApi = {
 
   list: (role?: 'buyer' | 'seller' | 'all') =>
     apiFetch<{ transactions: Transaction[] }>(`/api/transactions${role ? `?role=${role}` : ''}`),
+
+  getUpiDetails: () =>
+    apiFetch<UpiDetails>('/api/transactions/upi-details'),
 };
 
 // ────────────────────────────────────────────
@@ -338,13 +346,21 @@ export interface Transaction {
   sellerAmount?: number;
   status: 'pending_payment' | 'verifying_payment' | 'escrow' | 'ready_for_payout' | 'completed' | 'refunded';
   utrNumber?: string;
+  paymentScreenshotUrl?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   createdAt: string;
   listing?: Partial<Listing>;
   buyer?: Partial<User>;
   seller?: Partial<User>;
-  myRole?: 'buyer' | 'seller';
+  myRole?: 'buyer' | 'seller' | 'admin';
+}
+
+export interface UpiDetails {
+  upiId: string;
+  qrUrl: string;
+  amount?: number;
+  note?: string;
 }
 
 export interface Dispute {
