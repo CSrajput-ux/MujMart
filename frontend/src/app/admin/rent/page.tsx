@@ -1,30 +1,31 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import StatusPill from "@/components/ui/StatusPill";
-
-interface RentApproval {
-  id: string;
-  listing: string;
-  seller: string;
-  proposedRate: number;
-  ceilingRate: number;
-  duration: string;
-  status: "pending" | "approved" | "rejected";
-}
-
-const approvals: RentApproval[] = [
-  { id: "R001", listing: "Study Desk + Chair", seller: "FurnitureKing", proposedRate: 200, ceilingRate: 250, duration: "3 days", status: "pending" },
-  { id: "R002", listing: "Projector Rental", seller: "TechGuru42", proposedRate: 500, ceilingRate: 400, duration: "1 day", status: "pending" },
-  { id: "R003", listing: "Guitar Acoustic", seller: "MusicLover", proposedRate: 100, ceilingRate: 150, duration: "7 days", status: "pending" },
-  { id: "R004", listing: "DSLR Camera", seller: "PhotoPro", proposedRate: 800, ceilingRate: 600, duration: "2 days", status: "pending" },
-  { id: "R005", listing: "Toolkit Set", seller: "MakerSpace", proposedRate: 50, ceilingRate: 100, duration: "5 days", status: "approved" },
-  { id: "R006", listing: "Party Speakers", seller: "SoundWave", proposedRate: 700, ceilingRate: 500, duration: "1 day", status: "rejected" },
-  { id: "R007", listing: "Lab Coat", seller: "PreMed101", proposedRate: 30, ceilingRate: 50, duration: "30 days", status: "pending" },
-];
+import { adminApi } from "@/lib/api";
 
 export default function AdminRentPage() {
-  const pendingCount = approvals.filter((a) => a.status === "pending").length;
+  const [approvals, setApprovals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadRentListings() {
+      try {
+        const res = await adminApi.listings({ type: "rent", limit: 100 } as any);
+        // Filter out those that might need approval if you want, but for now we'll just show them
+        setApprovals(res.listings);
+      } catch (err) {
+        console.error("Failed to load rent listings", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRentListings();
+  }, []);
+
+  const pendingCount = approvals.filter((a) => a.status === "pending" || a.status === "active").length;
+
+  if (loading) return <div style={{ padding: 24, color: "#6B7280" }}>Loading rent approvals...</div>;
 
   return (
     <div>
@@ -38,8 +39,10 @@ export default function AdminRentPage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {approvals.map((approval) => {
-          const overCeiling = approval.proposedRate > approval.ceilingRate;
+        {approvals.length === 0 ? (
+          <div style={{ padding: 24, background: "#fff", borderRadius: 14, textAlign: "center", color: "#6B7280" }}>No rent approvals pending 🎉</div>
+        ) : approvals.map((approval) => {
+          const overCeiling = false; // logic would go here if ceiling is defined
 
           return (
             <div
@@ -63,36 +66,26 @@ export default function AdminRentPage() {
                     <StatusPill
                       label={approval.status}
                       variant={
-                        approval.status === "approved" ? "success" :
-                        approval.status === "rejected" ? "danger" : "warning"
+                        approval.status === "active" ? "success" :
+                        approval.status === "removed" ? "danger" : "warning"
                       }
                     />
-                    {overCeiling && <StatusPill label="Over Ceiling" variant="danger" />}
                   </div>
                   <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, color: "#1A0A00", margin: 0 }}>
-                    {approval.listing}
+                    {approval.title}
                   </p>
                   <p style={{ fontSize: 12, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>
-                    by {approval.seller} · {approval.duration}
+                    by {approval.seller?.alias || "Unknown"}
                   </p>
 
                   {/* Price comparison */}
                   <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 12 }}>
                     <div>
                       <span style={{ fontSize: 11, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", display: "block" }}>
-                        Proposed
+                        Proposed Rate
                       </span>
                       <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 15, color: overCeiling ? "#EF4444" : "#22C55E" }}>
-                        ₹{approval.proposedRate}/day
-                      </span>
-                    </div>
-                    <span style={{ color: "#6B7280", fontSize: 13 }}>vs</span>
-                    <div>
-                      <span style={{ fontSize: 11, color: "#6B7280", fontFamily: "'DM Sans', sans-serif", display: "block" }}>
-                        Ceiling
-                      </span>
-                      <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 15, color: "#1A0A00" }}>
-                        ₹{approval.ceilingRate}/day
+                        ₹{approval.price}/day
                       </span>
                     </div>
                   </div>

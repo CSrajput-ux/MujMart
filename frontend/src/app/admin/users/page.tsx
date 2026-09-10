@@ -1,10 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DataTable from "@/components/admin/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
+import { adminApi, type User } from "@/lib/api";
 
 export default function AdminUsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const res = await adminApi.users({ limit: 100 });
+        setUsers(res.users);
+      } catch (err) {
+        console.error("Failed to load users", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadUsers();
+  }, []);
+
   const columns = [
     { key: "alias", label: "Alias", sortable: true },
     { key: "email", label: "Email", sortable: true },
@@ -13,13 +31,27 @@ export default function AdminUsersPage() {
     { key: "status", label: "Status" },
   ];
 
-  const data = [
-    { alias: "TechGuru42", email: "tech@example.com", listings: "4", deals: "12", status: <StatusPill label="Active" variant="success" /> },
-    { alias: "BookWorm99", email: "book@example.com", listings: "2", deals: "8", status: <StatusPill label="Active" variant="success" /> },
-    { alias: "FurnitureKing", email: "furn@example.com", listings: "5", deals: "25", status: <StatusPill label="Active" variant="success" /> },
-    { alias: "CycleRider", email: "cycle@example.com", listings: "1", deals: "5", status: <StatusPill label="Warned" variant="warning" /> },
-    { alias: "GiveawayGuru", email: "give@example.com", listings: "3", deals: "3", status: <StatusPill label="Active" variant="success" /> },
-  ];
+  const data = users.map((u) => ({
+    id: u.id,
+    alias: u.alias,
+    email: u.email,
+    listings: u._count?.listings?.toString() || "0",
+    deals: u.dealCount?.toString() || "0",
+    status: <StatusPill label={u.isBanned ? "Banned" : "Active"} variant={u.isBanned ? "danger" : "success"} />,
+  }));
+
+  const handleBan = async (id: string, currentlyBanned: boolean) => {
+    if (confirm(`Are you sure you want to ${currentlyBanned ? 'unban' : 'ban'} this user?`)) {
+      try {
+        await adminApi.banUser(id, !currentlyBanned);
+        setUsers(users.map(u => u.id === id ? { ...u, isBanned: !currentlyBanned } : u));
+      } catch (e) {
+        alert("Failed to update user ban status");
+      }
+    }
+  };
+
+  if (loading) return <div style={{ padding: 24, color: "#6B7280" }}>Loading users...</div>;
 
   return (
     <div>
@@ -36,14 +68,18 @@ export default function AdminUsersPage() {
         columns={columns}
         data={data}
         searchPlaceholder="Search users..."
-        actions={() => (
+        actions={(row) => {
+          const user = users.find(u => u.id === row.id);
+          const isBanned = user?.isBanned;
+          return (
           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
             <button
+              onClick={() => handleBan(row.id, isBanned)}
               style={{
                 padding: "4px 12px",
                 fontSize: 11,
-                color: "#F59E0B",
-                border: "1px solid rgba(245,158,11,0.3)",
+                color: isBanned ? "#10B981" : "#EF4444",
+                border: `1px solid ${isBanned ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
                 borderRadius: 50,
                 background: "transparent",
                 cursor: "pointer",
@@ -51,25 +87,10 @@ export default function AdminUsersPage() {
                 fontWeight: 500,
               }}
             >
-              Warn
-            </button>
-            <button
-              style={{
-                padding: "4px 12px",
-                fontSize: 11,
-                color: "#EF4444",
-                border: "1px solid rgba(239,68,68,0.3)",
-                borderRadius: 50,
-                background: "transparent",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 500,
-              }}
-            >
-              Ban
+              {isBanned ? "Unban" : "Ban"}
             </button>
           </div>
-        )}
+        )}}
       />
     </div>
   );

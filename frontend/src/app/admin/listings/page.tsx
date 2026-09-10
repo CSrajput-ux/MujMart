@@ -1,10 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DataTable from "@/components/admin/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
+import { adminApi, type Listing } from "@/lib/api";
 
 export default function AdminListingsPage() {
+  const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadListings() {
+      try {
+        const res = await adminApi.listings({ limit: 100 });
+        setListings(res.listings);
+      } catch (err) {
+        console.error("Failed to load listings", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadListings();
+  }, []);
+
   const columns = [
     { key: "title", label: "Title", sortable: true },
     { key: "type", label: "Type", sortable: true },
@@ -14,14 +32,33 @@ export default function AdminListingsPage() {
     { key: "date", label: "Date", sortable: true },
   ];
 
-  const data = [
-    { title: "Sony WH-1000XM4", type: "Sell", price: "₹12,500", status: <StatusPill label="Active" variant="success" />, seller: "TechGuru42", date: "Mar 15" },
-    { title: "Engineering Maths Book", type: "Resale", price: "₹350", status: <StatusPill label="Active" variant="success" />, seller: "BookWorm99", date: "Mar 14" },
-    { title: "Study Desk + Chair", type: "Rent", price: "₹200/day", status: <StatusPill label="Featured" variant="orange" />, seller: "FurnitureKing", date: "Mar 13" },
-    { title: 'Firefox Cycle 26"', type: "Sell", price: "₹4,500", status: <StatusPill label="Active" variant="success" />, seller: "CycleRider", date: "Mar 12" },
-    { title: "Old Mattress Topper", type: "Free", price: "FREE", status: <StatusPill label="Reported" variant="warning" />, seller: "GiveawayGuru", date: "Mar 11" },
-    { title: 'Samsung Monitor 24"', type: "Sell", price: "₹8,900", status: <StatusPill label="Active" variant="success" />, seller: "ScreenDeals", date: "Mar 16" },
-  ];
+  const data = listings.map((l) => {
+    let variant: "success" | "danger" | "warning" | "orange" = "success";
+    if (l.status === "removed") variant = "danger";
+    if (l.status === "expired") variant = "warning";
+    if (l.status === "sold") variant = "orange";
+    
+    return {
+      id: l.id,
+      title: l.title,
+      type: l.type,
+      price: l.price === 0 ? "FREE" : `₹${l.price.toLocaleString("en-IN")}`,
+      status: <StatusPill label={l.status.charAt(0).toUpperCase() + l.status.slice(1)} variant={variant} />,
+      seller: l.seller?.alias || "Unknown",
+      date: new Date(l.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    };
+  });
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await adminApi.updateListing(id, newStatus);
+      setListings(listings.map(l => l.id === id ? { ...l, status: newStatus } : l));
+    } catch (e) {
+      alert("Failed to update listing status");
+    }
+  };
+
+  if (loading) return <div style={{ padding: 24, color: "#6B7280" }}>Loading listings...</div>;
 
   return (
     <div>
@@ -38,42 +75,51 @@ export default function AdminListingsPage() {
         columns={columns}
         data={data}
         searchPlaceholder="Search listings..."
-        actions={() => (
+        actions={(row) => {
+          const listing = listings.find(l => l.id === row.id);
+          const isRemoved = listing?.status === "removed";
+          return (
           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-            <button
-              style={{
-                padding: "4px 12px",
-                fontSize: 11,
-                color: "#E8521A",
-                border: "1px solid rgba(232,82,26,0.3)",
-                borderRadius: 50,
-                background: "transparent",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 500,
-                transition: "all 0.2s",
-              }}
-            >
-              Feature
-            </button>
-            <button
-              style={{
-                padding: "4px 12px",
-                fontSize: 11,
-                color: "#EF4444",
-                border: "1px solid rgba(239,68,68,0.3)",
-                borderRadius: 50,
-                background: "transparent",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 500,
-                transition: "all 0.2s",
-              }}
-            >
-              Ban
-            </button>
+            {!isRemoved && (
+              <button
+                onClick={() => handleUpdateStatus(row.id, "removed")}
+                style={{
+                  padding: "4px 12px",
+                  fontSize: 11,
+                  color: "#EF4444",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  borderRadius: 50,
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                  transition: "all 0.2s",
+                }}
+              >
+                Remove
+              </button>
+            )}
+            {isRemoved && (
+              <button
+                onClick={() => handleUpdateStatus(row.id, "active")}
+                style={{
+                  padding: "4px 12px",
+                  fontSize: 11,
+                  color: "#10B981",
+                  border: "1px solid rgba(16,185,129,0.3)",
+                  borderRadius: 50,
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                  transition: "all 0.2s",
+                }}
+              >
+                Restore
+              </button>
+            )}
           </div>
-        )}
+        )}}
       />
     </div>
   );

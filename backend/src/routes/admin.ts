@@ -260,7 +260,7 @@ router.get('/transactions', async (req: AuthRequest, res: Response): Promise<voi
         take: limitNum,
         orderBy: { createdAt: 'desc' },
         include: {
-          listing: { select: { id: true, title: true, type: true } },
+          listing: { select: { id: true, title: true, type: true, category: true } },
           buyer: { select: { id: true, alias: true } },
           seller: { select: { id: true, alias: true } },
         },
