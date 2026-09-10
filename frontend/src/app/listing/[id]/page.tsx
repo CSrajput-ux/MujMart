@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/marketplace/Navbar";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
-import { listingsApi, threadsApi, transactionsApi, requestsApi, type Listing } from "@/lib/api";
+import { listingsApi, threadsApi, requestsApi, type Listing } from "@/lib/api";
 
 const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
   New: { bg: "#DCFCE7", text: "#15803D" },
@@ -34,12 +34,6 @@ export default function ListingDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [relatedListings, setRelatedListings] = useState<Listing[]>([]);
 
-  // Checkout states
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<"processing" | "success">("processing");
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
-  
   // Request states
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
@@ -68,58 +62,10 @@ export default function ListingDetailPage() {
 
   const handleBuyNow = () => {
     if (!listing) return;
-    requireAuth(async () => {
-      try {
-        setCheckoutLoading(true);
-        // Initiate transaction
-        const res = await transactionsApi.checkout({ listingId: listing.id });
-        setTransactionId(res.transaction.id);
-        
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: listing.price * 100, // Amount in paise
-          currency: "INR",
-          name: "MUJMart",
-          description: "Secure Escrow Payment for " + listing.title,
-          order_id: res.transaction.razorpayOrderId,
-          handler: async function (response: any) {
-             try {
-                setShowCheckout(true);
-                setCheckoutStep("processing");
-                await transactionsApi.verifyRazorpay(res.transaction.id, {
-                   razorpay_order_id: response.razorpay_order_id,
-                   razorpay_payment_id: response.razorpay_payment_id,
-                   razorpay_signature: response.razorpay_signature,
-                });
-                setCheckoutStep("success");
-             } catch(e: any) {
-                alert("Payment verification failed: " + (e.message || ""));
-                setShowCheckout(false);
-             }
-          },
-          modal: {
-            ondismiss: function() {
-              setCheckoutLoading(false);
-            }
-          },
-          theme: {
-            color: "#E8521A"
-          }
-        };
-
-        const rzp1 = new (window as any).Razorpay(options);
-        rzp1.on('payment.failed', function (response: any) {
-           alert(response.error.description);
-           setShowCheckout(false);
-           setCheckoutLoading(false);
-        });
-        rzp1.open();
-
-      } catch (e: any) {
-        alert(e.message || "Failed to initiate checkout");
-        setShowCheckout(false);
-        setCheckoutLoading(false);
-      }
+    requireAuth(() => {
+      // Add to cart and redirect to cart page where UPI modal will open
+      addToCart(listing as any);
+      router.push("/cart");
     });
   };
 
@@ -319,11 +265,27 @@ export default function ListingDetailPage() {
                 )
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <button onClick={handleBuyNow} style={{ width: "100%", padding: "14px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FF6B35")} onMouseLeave={(e) => (e.currentTarget.style.background = "#E8521A")}>
-                    Buy Now (Secure Escrow)
+                  <button
+                    onClick={handleBuyNow}
+                    style={{ width: "100%", padding: "14px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#FF6B35")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#E8521A")}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                    Buy Now — Pay via UPI
                   </button>
                   <button onClick={handleNegotiate} style={{ width: "100%", padding: "14px", background: "#fff", border: "1.5px solid #F0DDD4", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#FDF8F5")} onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}>
                     Negotiate Anonymously
+                  </button>
+                  <button
+                    onClick={() => { addToCart(listing as any); }}
+                    style={{ width: "100%", padding: "12px", background: "#FFF0EA", color: "#E8521A", border: "1.5px solid #E8521A", borderRadius: 50, fontWeight: 700, cursor: "pointer", transition: "0.2s", fontSize: 13 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#FFE0CC")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#FFF0EA")}
+                  >
+                    + Add to Cart
                   </button>
                 </div>
               )}
@@ -352,26 +314,7 @@ export default function ListingDetailPage() {
           </section>
         )}
 
-        {/* Checkout Success Modal */}
-        {showCheckout && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} />
-            
-            <div style={{ position: "relative", width: "100%", maxWidth: 420, background: "#fff", borderRadius: 24, boxShadow: "0 24px 48px rgba(0,0,0,0.15)", padding: 32 }}>
-              
-              {checkoutStep === "processing" ? (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>Verifying your secure payment...</div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "20px 0" }}>
-                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#DCFCE7", color: "#15803D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>✓</div>
-                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>Payment Successful</h3>
-                  <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px 0", lineHeight: 1.5 }}>Your payment has been verified. The funds are now securely held in escrow until you receive your item.</p>
-                  <button onClick={() => router.push("/my-listings")} style={{ padding: "10px 24px", background: "#E8521A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, cursor: "pointer" }}>Go to My Deals</button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Cart Added Toast — shown briefly after adding to cart */}
         {/* Document Preview Modal */}
         {previewDoc && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
