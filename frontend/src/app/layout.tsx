@@ -4,6 +4,7 @@ import { DemoProvider } from "@/lib/DemoContext";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/AuthContext";
 import { Analytics } from "@vercel/analytics/next";
+import Footer from "@/components/marketplace/Footer";
 import "./globals.css";
 
 const syne = Syne({
@@ -54,7 +55,12 @@ export default function RootLayout({
       <body className={`${syne.variable} ${dmSans.variable} antialiased`}>
         <DemoProvider>
           <AuthProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+                <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+                  {children}
+                  <Footer />
+                </div>
+            </CartProvider>
           </AuthProvider>
         </DemoProvider>
         <Analytics />
