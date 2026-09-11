@@ -168,6 +168,27 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // POST /api/listings — auth required
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // ── Profile completeness gate ──────────────────────────────────
+    const seller = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { phone: true, address: true, upiId: true, upiQrUrl: true },
+    });
+
+    const missingFields: string[] = [];
+    if (!seller?.phone) missingFields.push('mobile number');
+    if (!seller?.address) missingFields.push('current address');
+    if (!seller?.upiId && !seller?.upiQrUrl) missingFields.push('UPI ID or QR code');
+
+    if (missingFields.length > 0) {
+      res.status(403).json({
+        error: `Please complete your profile before listing an item. Missing: ${missingFields.join(', ')}.`,
+        profileIncomplete: true,
+        missingFields,
+      });
+      return;
+    }
+    // ───────────────────────────────────────────────────────────────
+
     const { title, description, price, type, category, condition, images, attachments, deadline } = req.body;
 
     if (!title || !description || !type || !category || !condition) {

@@ -19,6 +19,8 @@ model User {
   alias     String   @unique
   upiId     String?  // For receiving payouts
   phone     String?  // Contact number
+  address   String?  // Current address (hostel/home)
+  upiQrUrl  String?  // Cloudinary URL of uploaded UPI QR code image
   repScore  Float    @default(5.0)
   dealCount Int      @default(0)
   isBanned  Boolean  @default(false)

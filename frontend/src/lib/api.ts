@@ -57,7 +57,7 @@ export const authApi = {
   me: () =>
     apiFetch<{ user: User }>('/api/auth/me'),
 
-  updateProfile: (data: { upiId?: string; phone?: string }) =>
+  updateProfile: (data: { upiId?: string; phone?: string; address?: string; upiQrUrl?: string }) =>
     apiFetch<{ user: User }>('/api/auth/me', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -284,7 +284,9 @@ export interface User {
   email: string;
   alias: string;
   upiId?: string;
+  upiQrUrl?: string;
   phone?: string;
+  address?: string;
   role: 'student' | 'admin';
   repScore: number;
   dealCount: number;

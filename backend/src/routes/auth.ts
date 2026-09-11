@@ -201,7 +201,9 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
         email: true,
         alias: true,
         upiId: true,
+        upiQrUrl: true,
         phone: true,
+        address: true,
         role: true,
         repScore: true,
         dealCount: true,
@@ -231,17 +233,24 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 // PUT /api/auth/me
 router.put('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { upiId, phone } = req.body;
+    const { upiId, phone, address, upiQrUrl } = req.body;
     const user = await prisma.user.update({
       where: { id: req.user!.id },
-      data: { upiId, phone },
+      data: {
+        ...(upiId !== undefined && { upiId }),
+        ...(phone !== undefined && { phone }),
+        ...(address !== undefined && { address }),
+        ...(upiQrUrl !== undefined && { upiQrUrl }),
+      },
       select: {
         id: true,
         name: true,
         email: true,
         alias: true,
         upiId: true,
+        upiQrUrl: true,
         phone: true,
+        address: true,
         role: true,
         repScore: true,
         dealCount: true,

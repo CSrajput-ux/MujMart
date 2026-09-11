@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Navbar from "@/components/marketplace/Navbar";
-import { listingsApi, type Listing } from "@/lib/api";
+import { listingsApi, authApi, type Listing } from "@/lib/api";
 
 type ListingType = "sell" | "resale" | "rent" | "free" | "query";
 
@@ -27,6 +27,25 @@ export default function PostListingPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Profile completeness gate ─────────────────────────────────────
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+
+  useEffect(() => {
+    authApi.me().then(({ user }) => {
+      const missing: string[] = [];
+      if (!user.phone) missing.push("📱 Mobile Number");
+      if (!user.address) missing.push("🏠 Current Address");
+      if (!user.upiId && !user.upiQrUrl) missing.push("💳 UPI ID or QR Code");
+      setMissingFields(missing);
+      setProfileChecked(true);
+    }).catch(() => {
+      // Not logged in — Next auth guard / Navbar will handle redirect
+      setProfileChecked(true);
+    });
+  }, []);
+  // ─────────────────────────────────────────────────────────────────
 
   const handleNext = () => { 
     if (currentStep === 3) {
@@ -95,6 +114,80 @@ export default function PostListingPage() {
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "10px 14px", border: "1px solid #F0DDD4", borderRadius: 10, fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: "none", color: "#1A0A00", transition: "border-color 0.2s",
   };
+
+  // ── Gate: profile not yet checked (loading) ────────────────────
+  if (!profileChecked) {
+    return (
+      <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
+        <Navbar />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <div style={{ width: 36, height: 36, border: "3px solid #E8521A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Gate: profile incomplete ───────────────────────────────────
+  if (missingFields.length > 0) {
+    return (
+      <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
+        <Navbar />
+        <div style={{ maxWidth: 520, margin: "60px auto", padding: "0 24px" }}>
+          {/* Icon */}
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, #FFF0EA, #FFD9C8)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 32, boxShadow: "0 8px 24px rgba(232,82,26,0.15)" }}>
+            🔒
+          </div>
+
+          <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 26, color: "#1A0A00", textAlign: "center", margin: "0 0 10px" }}>
+            Complete Your Profile First
+          </h1>
+          <p style={{ fontSize: 14, color: "#6B7280", textAlign: "center", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: "0 0 32px" }}>
+            Before you can list an item, we need a few details so buyers can contact you and pay you.
+          </p>
+
+          {/* Missing fields checklist */}
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0DDD4", padding: "24px 28px", marginBottom: 24, boxShadow: "0 4px 16px rgba(0,0,0,0.04)" }}>
+            <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, color: "#1A0A00", margin: "0 0 16px" }}>Missing information:</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["📱 Mobile Number", "🏠 Current Address", "💳 UPI ID or QR Code"].map((field) => {
+                const isMissing = missingFields.includes(field);
+                return (
+                  <div key={field} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, background: isMissing ? "#FEF2F2" : "#F0FDF4", border: `1px solid ${isMissing ? "#FCA5A5" : "#86EFAC"}` }}>
+                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: isMissing ? "#EF4444" : "#22C55E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>{isMissing ? "✗" : "✓"}</span>
+                    </div>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 13, color: isMissing ? "#B91C1C" : "#15803D" }}>
+                      {field}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <a href="/settings" style={{ textDecoration: "none" }}>
+            <button style={{
+              width: "100%", padding: "14px", background: "#E8521A", color: "#fff",
+              border: "none", borderRadius: 50, fontFamily: "'Syne', sans-serif",
+              fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "background 0.2s",
+              boxShadow: "0 4px 16px rgba(232,82,26,0.35)",
+            }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "#FF6B35"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "#E8521A"}
+            >
+              ⚙️ Complete Profile Now
+            </button>
+          </a>
+          <p style={{ fontSize: 12, color: "#9CA3AF", textAlign: "center", marginTop: 12, fontFamily: "'DM Sans', sans-serif" }}>
+            Takes less than a minute. You'll be able to post right after.
+          </p>
+        </div>
+      </main>
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────
 
   return (
     <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
