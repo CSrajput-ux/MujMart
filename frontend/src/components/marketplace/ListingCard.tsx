@@ -13,7 +13,7 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing }: ListingCardProps) {
   const { addToCart, cartItems } = useCart();
-  const { requireAuth } = useAuth();
+  const { requireAuth, isAuthenticated, showAuthModal } = useAuth();
   const router = useRouter();
   const inCart = cartItems.some((item) => item.id === listing.id);
 
@@ -159,13 +159,57 @@ export default function ListingCard({ listing }: ListingCardProps) {
             >
               View Task
             </button>
+          ) : !isAuthenticated ? (
+            // User is signed out — show a "Sign in to buy" button instead
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showAuthModal();
+              }}
+              style={{
+                width: "100%",
+                padding: "10px",
+                background: "#F3F4F6",
+                color: "#6B7280",
+                border: "1px solid #E5E7EB",
+                borderRadius: 6,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                marginBottom: 12,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#FFF0EA";
+                e.currentTarget.style.color = "#E8521A";
+                e.currentTarget.style.borderColor = "#E8521A";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#F3F4F6";
+                e.currentTarget.style.color = "#6B7280";
+                e.currentTarget.style.borderColor = "#E5E7EB";
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              Sign in to buy
+            </button>
           ) : (
+            // User is signed in — show normal Add to Cart button
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (!inCart) {
-                  requireAuth(() => addToCart(listing));
+                  addToCart(listing);
                 }
               }}
               style={{
