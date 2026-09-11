@@ -468,6 +468,7 @@ export default function CartPage() {
   const [mobile, setMobile] = useState("");
   const [coupon, setCoupon] = useState("");
   const [showUpiModal, setShowUpiModal] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   return (
     <main style={{ minHeight: "100vh", background: "#FDF8F5" }}>
@@ -630,10 +631,31 @@ export default function CartPage() {
 
             {/* Action Buttons */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {checkoutError && (
+                <div style={{
+                  background: "#FEF2F2", border: "1px solid #FECACA",
+                  borderRadius: 10, padding: "10px 14px",
+                  fontSize: 13, color: "#DC2626", fontFamily: "'DM Sans', sans-serif",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  ⚠️ {checkoutError}
+                </div>
+              )}
               <button
                 id="place-order-btn"
                 onClick={() => {
+                  setCheckoutError(null);
                   if (totalItems === 0) return;
+                  // Validate: must provide delivery type OR address
+                  if (!deliveryType && !address.trim()) {
+                    setCheckoutError("Please select a Delivery Type or enter your delivery address.");
+                    return;
+                  }
+                  // Validate: mobile number required (10 digits)
+                  if (!mobile.trim() || !/^[0-9]{10}$/.test(mobile.trim())) {
+                    setCheckoutError("Please enter a valid 10-digit mobile phone number.");
+                    return;
+                  }
                   setShowUpiModal(true);
                 }}
                 disabled={totalItems === 0}

@@ -52,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     clearAuthToken();
+    // Clear cart so items don't persist after sign out
+    localStorage.removeItem("mujmart_cart");
     window.location.reload();
   };
 
