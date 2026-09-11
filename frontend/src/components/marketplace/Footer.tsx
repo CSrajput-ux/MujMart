@@ -68,9 +68,9 @@ export default function Footer() {
         <div>
           <h4 className="footer-col-title">Support</h4>
           <ul className="footer-links">
-            <li><Link href="#" className="footer-link">Help Center</Link></li>
-            <li><Link href="#" className="footer-link footer-link-highlight">Safety Tips</Link></li>
-            <li><Link href="#" className="footer-link">Report Issue</Link></li>
+            <li><Link href="/help" className="footer-link">Help Center</Link></li>
+            <li><Link href="/safety-tips" className="footer-link footer-link-highlight">Safety Tips</Link></li>
+            <li><Link href="/report-issue" className="footer-link">Report Issue</Link></li>
           </ul>
         </div>
 
